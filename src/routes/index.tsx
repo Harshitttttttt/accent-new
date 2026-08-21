@@ -18,6 +18,9 @@ function DashboardRoute() {
   const navigate = useCrmNavigation()
   const { snapshot, activity, database } = Route.useLoaderData()
 
+  // eslint-disable-next-line no-console -- temporary debug logging
+  console.log('[DashboardRoute] snapshot generated at:', snapshot.generatedAt)
+
   return (
     <div
       className="relative h-full"
