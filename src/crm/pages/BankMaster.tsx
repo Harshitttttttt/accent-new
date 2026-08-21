@@ -408,7 +408,7 @@ export default function BankMaster() {
                 }}
                 aria-hidden
               >
-                <Landmark size={14} style={{ color: r.isPrimary ? '#fff' : 'var(--brand-primary)' }} strokeWidth={1.75} />
+                <Landmark size={14} style={{ color: r.isPrimary ? 'var(--on-brand)' : 'var(--brand-primary)' }} strokeWidth={1.75} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-[13px] leading-none font-semibold text-[var(--text-primary)]" style={{ textWrap: 'balance' }}>
@@ -532,7 +532,7 @@ export default function BankMaster() {
                 type="button"
                 aria-label={`Delete ${b.bankName}`}
                 onClick={(e) => { e.stopPropagation(); setDeleteBankTarget(b) }}
-                className="inline-flex size-9 items-center justify-center rounded-md border border-transparent text-[var(--text-muted)] transition-[background,color,scale] duration-150 hover:bg-[#FEE2E2] hover:text-[var(--danger)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
+                className="inline-flex size-9 items-center justify-center rounded-md border border-transparent text-[var(--text-muted)] transition-[background,color,scale] duration-150 hover:bg-[var(--danger-soft-bg)] hover:text-[var(--danger)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
               >
                 <Trash2 size={14} strokeWidth={1.75} />
               </button>
@@ -595,7 +595,7 @@ export default function BankMaster() {
                 className="flex size-[26px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
                 style={{
                   background: r.isPrimary ? 'var(--brand-primary)' : 'var(--surface-secondary)',
-                  color: r.isPrimary ? '#fff' : 'var(--text-muted)',
+                  color: r.isPrimary ? 'var(--on-brand)' : 'var(--text-muted)',
                   border: r.isPrimary ? '2px solid rgba(234,179,8,0.55)' : '1px solid var(--border)',
                 }}
                 aria-hidden
@@ -653,7 +653,7 @@ export default function BankMaster() {
                 type="button"
                 aria-label={`Delete ${r.firstName}`}
                 onClick={() => setDeleteContactTarget(r)}
-                className="inline-flex size-9 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[#FEE2E2] hover:text-[var(--danger)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
+                className="inline-flex size-9 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--danger-soft-bg)] hover:text-[var(--danger)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
               >
                 <Trash2 size={13} strokeWidth={1.75} />
               </button>
@@ -785,7 +785,7 @@ export default function BankMaster() {
               <div className="mt-1 flex items-baseline gap-1.5 tabular-nums text-[20px] font-extrabold leading-none tracking-tight text-[var(--success)]" style={{ fontVariantNumeric: 'tabular-nums' }}>{stats.active}<span className="text-[11px] font-medium text-[var(--text-muted)]">/{stats.total}</span></div>
               <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium leading-none text-[var(--success)]"><ShieldCheck size={11} aria-hidden /> Operational</div>
             </div>
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#DCFCE7] text-[#15803D] dark:bg-[rgba(80,250,123,0.15)] dark:text-[var(--success)]" aria-hidden><CheckCircle2 size={15} strokeWidth={1.75} /></div>
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--success-soft-bg)] text-[var(--success-soft-fg)]" aria-hidden><CheckCircle2 size={15} strokeWidth={1.75} /></div>
           </div>
         </div>
 
@@ -919,7 +919,7 @@ export default function BankMaster() {
               }}
             >
               <t.icon size={14} strokeWidth={isActive ? 2 : 1.75} aria-hidden /> {t.label}
-              <span className="badge text-[11px] leading-none" style={{ background: isActive ? 'var(--brand-primary)' : 'var(--surface-secondary)', color: isActive ? '#fff' : 'var(--text-muted)', border: isActive ? '1px solid var(--brand-primary)' : '1px solid var(--border)' }}>{t.count}</span>
+              <span className="badge text-[11px] leading-none" style={{ background: isActive ? 'var(--brand-primary)' : 'var(--surface-secondary)', color: isActive ? 'var(--on-brand)' : 'var(--text-muted)', border: isActive ? '1px solid var(--brand-primary)' : '1px solid var(--border)' }}>{t.count}</span>
             </button>
           )
         })}
@@ -1159,7 +1159,7 @@ export default function BankMaster() {
                                 className="flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
                                 style={{
                                   background: ct.isPrimary ? 'var(--brand-primary)' : 'var(--surface-secondary)',
-                                  color: ct.isPrimary ? '#fff' : 'var(--text-muted)',
+                                  color: ct.isPrimary ? 'var(--on-brand)' : 'var(--text-muted)',
                                   border: ct.isPrimary ? '2px solid #EAB308' : '1px solid var(--border)',
                                 }}
                                 aria-hidden
@@ -1210,7 +1210,7 @@ export default function BankMaster() {
                                   const flat: ContactFlat = { ...ct, bankId: detailBank.id, bankName: detailBank.bankName, bankCode: detailBank.code, accountNumber: detailBank.accountNumber }
                                   setDeleteContactTarget(flat)
                                 }}
-                                className="inline-flex size-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[#FEE2E2] hover:text-[var(--danger)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)] dark:hover:bg-[rgba(239,68,68,0.15)]"
+                                className="inline-flex size-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-soft-bg)] hover:text-[var(--danger)] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
                               >
                                 <Trash2 size={13} strokeWidth={1.75} />
                               </button>
@@ -1446,7 +1446,7 @@ export default function BankMaster() {
       {deleteBankTarget && (
         <div role="dialog" aria-modal="true" aria-labelledby="delete-bank-title" className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[2px]" onClick={() => setDeleteBankTarget(null)}>
           <div className="bank-modal card w-full max-w-[440px] p-6 text-center shadow-[0_20px_60px_rgba(0,0,0,0.22)]" style={{ borderRadius: 16 }} onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#FEE2E2] text-[var(--danger)] ring-1 ring-[#FECACA]" aria-hidden><Trash2 size={22} strokeWidth={1.75} /></div>
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[var(--danger-soft-bg)] text-[var(--danger)] ring-1 ring-[var(--border)]" aria-hidden><Trash2 size={22} strokeWidth={1.75} /></div>
             <h3 id="delete-bank-title" className="mt-4 text-balance text-[16px] font-bold leading-none" style={{ textWrap: 'balance' }}>Delete bank account?</h3>
             <p className="mx-auto mt-2 max-w-[34ch] text-pretty text-[13px] leading-relaxed text-[var(--text-muted)]" style={{ textWrap: 'pretty' }}>
               This will permanently delete <span className="font-semibold text-[var(--text-primary)]">{deleteBankTarget.bankName}</span> <span className="font-mono text-xs">({deleteBankTarget.code} · {deleteBankTarget.accountNumber})</span> and its {deleteBankTarget.contacts.length} {deleteBankTarget.contacts.length === 1 ? 'contact' : 'contacts'}. You cannot undo this.

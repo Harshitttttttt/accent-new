@@ -145,7 +145,7 @@ export function RegisterForm({
         </div>
 
         {isInitial ? (
-          <div className="flex items-center gap-3 rounded-lg border border-[var(--brand-primary)]/20 bg-[#F3E8F5] p-3 text-xs text-[var(--brand-primary)]">
+          <div className="flex items-center gap-3 rounded-lg border border-[var(--brand-primary)]/20 bg-[var(--brand-tint)] p-3 text-xs text-[var(--brand-primary)]">
             <Shield className="size-4 shrink-0" aria-hidden="true" />
             <span>
               <strong>Initial Bootstrap Mode:</strong> This account will receive

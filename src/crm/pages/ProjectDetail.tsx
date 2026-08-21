@@ -160,15 +160,15 @@ export default function ProjectDetail({ onNavigate }: { onNavigate: (p: string) 
                   <AreaChart data={BURN_DATA}>
                     <defs>
                       <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#64126D" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#64126D" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} width={48} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} width={48} />
                     <Tooltip contentStyle={customTooltipStyle} formatter={(v) => [fmt(Number(v)), '']} />
-                    <Area type="monotone" dataKey="planned" stroke="#06B6D4" strokeWidth={1.5} strokeDasharray="4 2" fill="transparent" name="Planned" />
-                    <Area type="monotone" dataKey="actual" stroke="#64126D" strokeWidth={2} fill="url(#bg1)" name="Actual" />
+                    <Area type="monotone" dataKey="planned" stroke="var(--brand-cyan)" strokeWidth={1.5} strokeDasharray="4 2" fill="transparent" name="Planned" />
+                    <Area type="monotone" dataKey="actual" stroke="var(--brand-primary)" strokeWidth={2} fill="url(#bg1)" name="Actual" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -221,8 +221,8 @@ export default function ProjectDetail({ onNavigate }: { onNavigate: (p: string) 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                 {[
                   { label: 'Contract Value', value: fmt(project.budget), color: 'var(--brand-primary)' },
-                  { label: 'Invoiced', value: fmt(1050000), color: '#16A34A' },
-                  { label: 'Outstanding', value: fmt(630000), color: '#F59E0B' },
+                  { label: 'Invoiced', value: fmt(1050000), color: 'var(--success)' },
+                  { label: 'Outstanding', value: fmt(630000), color: 'var(--warning)' },
                 ].map(s => (
                   <div key={s.label} className="card" style={{ padding: '16px 18px' }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</div>
@@ -268,7 +268,7 @@ export default function ProjectDetail({ onNavigate }: { onNavigate: (p: string) 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {RISKS.map(r => (
                 <div key={r.id} className="card" style={{ padding: '14px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                  <AlertTriangle size={18} style={{ color: r.severity === 'High' ? 'var(--danger)' : r.severity === 'Medium' ? 'var(--warning)' : '#6B7280', flexShrink: 0, marginTop: 1 }} />
+                  <AlertTriangle size={18} style={{ color: r.severity === 'High' ? 'var(--danger)' : r.severity === 'Medium' ? 'var(--warning)' : 'var(--text-muted)', flexShrink: 0, marginTop: 1 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                       <span style={{ fontSize: 13.5, fontWeight: 600 }}>{r.description}</span>
@@ -340,10 +340,10 @@ export default function ProjectDetail({ onNavigate }: { onNavigate: (p: string) 
           <div className="card" style={{ padding: '14px 16px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 10 }}>Project Health</div>
             {[
-              { label: 'Schedule', score: 'On Track', color: '#16A34A' },
-              { label: 'Budget', score: 'At Risk', color: '#F59E0B' },
-              { label: 'Scope', score: 'On Track', color: '#16A34A' },
-              { label: 'Quality', score: 'On Track', color: '#16A34A' },
+              { label: 'Schedule', score: 'On Track', color: 'var(--success)' },
+              { label: 'Budget', score: 'At Risk', color: 'var(--warning)' },
+              { label: 'Scope', score: 'On Track', color: 'var(--success)' },
+              { label: 'Quality', score: 'On Track', color: 'var(--success)' },
             ].map(h => (
               <div key={h.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{h.label}</span>
@@ -374,7 +374,7 @@ export default function ProjectDetail({ onNavigate }: { onNavigate: (p: string) 
           <div className="card" style={{ padding: '14px 16px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 10 }}>Project Manager</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div className="avatar" style={{ background: '#86288F', width: 34, height: 34, fontSize: 12 }}>SM</div>
+              <div className="avatar" style={{ background: 'var(--brand-secondary)', width: 34, height: 34, fontSize: 12 }}>SM</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>Sara Mohammed</div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Project Manager</div>

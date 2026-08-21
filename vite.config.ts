@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import { defineConfig } from 'vite'
+import { env } from './src/env/server.ts'
 import viteReact from '@vitejs/plugin-react'
 import {
   getFontFaceStyles,
@@ -23,7 +24,7 @@ const porschePartialsPlugin = () => ({
 
 export default defineConfig({
   server: {
-    port: 3000,
+    port: env.DEV_PORT,
   },
   resolve: {
     tsconfigPaths: true,

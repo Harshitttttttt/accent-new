@@ -10,6 +10,7 @@ import {
 import { PorscheDesignSystemProvider } from '@porsche-design-system/components-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
+import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import Sidebar from '~/components/crm/Sidebar'
 import TopBar from '~/components/crm/TopBar'
@@ -104,12 +105,13 @@ function CrmShell() {
   const location = useLocation()
   const currentPage = useCurrentCrmPage()
   const navigate = useCrmNavigation()
+  const theme = useAppTheme()
 
   if (location.pathname === '/login' || location.pathname === '/register') {
     const targetId = location.pathname === '/register' ? '#register-main' : '#login-main'
     const label = location.pathname === '/register' ? 'Skip to register form' : 'Skip to login form'
     return (
-      <PorscheDesignSystemProvider theme="light">
+      <PorscheDesignSystemProvider theme={theme}>
         <a className="skip-link" href={targetId}>
           {label}
         </a>
@@ -120,7 +122,7 @@ function CrmShell() {
   }
 
   return (
-    <PorscheDesignSystemProvider theme="light">
+    <PorscheDesignSystemProvider theme={theme}>
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
@@ -136,6 +138,23 @@ function CrmShell() {
       <Scripts />
     </PorscheDesignSystemProvider>
   )
+}
+
+// Mirrors the data-theme attribute TopBar writes on toggle, so Porsche components
+// follow the app theme. Server snapshot stays 'light' to match SSR output.
+function useAppTheme(): 'light' | 'dark' {
+  const subscribe = (onStoreChange: () => void) => {
+    const observer = new MutationObserver(onStoreChange)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    return () => observer.disconnect()
+  }
+  const getSnapshot = () =>
+    document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+  const getServerSnapshot = () => 'light' as const
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
 function NotFound() {

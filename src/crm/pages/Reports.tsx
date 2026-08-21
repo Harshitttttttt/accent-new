@@ -21,10 +21,10 @@ const SAVED_REPORTS = [
 ]
 
 const DEPT_DATA = [
-  { name: 'Engineering', count: 5, color: '#64126D' },
-  { name: 'PMO', count: 1, color: '#86288F' },
-  { name: 'HSE', count: 1, color: '#DC2626' },
-  { name: 'Admin', count: 1, color: '#475569' },
+  { name: 'Engineering', count: 5, color: 'var(--brand-primary)' },
+  { name: 'PMO', count: 1, color: 'var(--brand-secondary)' },
+  { name: 'HSE', count: 1, color: 'var(--danger)' },
+  { name: 'Admin', count: 1, color: 'var(--brand-steel)' },
 ]
 
 export default function Reports() {
@@ -128,11 +128,11 @@ export default function Reports() {
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Utilization by Engineer</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={WORKLOAD_DATA}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} width={30} unit="%" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={30} unit="%" />
                       <Tooltip contentStyle={customTooltipStyle} />
-                      <Bar dataKey="utilization" fill="#64126D" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="utilization" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -152,12 +152,12 @@ export default function Reports() {
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Revenue Trend</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={REVENUE_DATA}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} width={44} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} width={44} />
                       <Tooltip contentStyle={customTooltipStyle} formatter={(v) => [`AED ${(Number(v) / 1000000).toFixed(2)}M`, '']} />
-                      <Line type="monotone" dataKey="revenue" stroke="#64126D" strokeWidth={2.5} dot={{ fill: '#64126D', r: 4 }} />
-                      <Line type="monotone" dataKey="target" stroke="#06B6D4" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+                      <Line type="monotone" dataKey="revenue" stroke="var(--brand-primary)" strokeWidth={2.5} dot={{ fill: 'var(--brand-primary)', r: 4 }} />
+                      <Line type="monotone" dataKey="target" stroke="var(--brand-cyan)" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

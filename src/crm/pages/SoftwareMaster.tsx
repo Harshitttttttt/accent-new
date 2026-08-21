@@ -241,7 +241,7 @@ export default function SoftwareMaster() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       {feedback && (
-        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 150, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderRadius: 8, background: feedback.type === 'success' ? '#16A34A' : '#DC2626', color: '#fff', fontWeight: 600, fontSize: 13.5 }}>
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 150, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderRadius: 8, background: feedback.type === 'success' ? 'var(--success-soft-bg)' : 'var(--danger-soft-bg)', color: feedback.type === 'success' ? 'var(--success-soft-fg)' : 'var(--danger-soft-fg)', fontWeight: 600, fontSize: 13.5 }}>
           {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{feedback.message}</span>
         </div>

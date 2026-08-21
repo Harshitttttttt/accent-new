@@ -647,8 +647,8 @@ export default function UserMaster({
         <div
           style={{
             padding: '10px 24px',
-            background: feedback.type === 'success' ? '#DCFCE7' : '#FEE2E2',
-            color: feedback.type === 'success' ? '#15803D' : '#B91C1C',
+            background: feedback.type === 'success' ? 'var(--success-soft-bg)' : 'var(--danger-soft-bg)',
+            color: feedback.type === 'success' ? 'var(--success-soft-fg)' : 'var(--danger-soft-fg)',
             fontSize: 13,
             fontWeight: 600,
             display: 'flex',
@@ -880,7 +880,7 @@ export default function UserMaster({
                         padding: '6px 14px',
                         borderRadius: 8,
                         background: selectedRoleCode === r.code ? 'var(--brand-primary)' : 'var(--surface-secondary)',
-                        color: selectedRoleCode === r.code ? '#fff' : 'var(--text-primary)',
+                        color: selectedRoleCode === r.code ? 'var(--on-brand)' : 'var(--text-primary)',
                         fontWeight: 600,
                         fontSize: 13,
                       }}
@@ -924,7 +924,7 @@ export default function UserMaster({
                       gap: 12,
                       cursor: 'pointer',
                       border: isChecked ? '1.5px solid var(--brand-primary)' : '1px solid var(--border)',
-                      background: isChecked ? '#FBF7FC' : 'var(--surface)',
+                      background: isChecked ? 'var(--brand-tint)' : 'var(--surface)',
                       transition: 'all 0.15s ease',
                     }}
                   >
@@ -1255,7 +1255,7 @@ export default function UserMaster({
                 width: 48,
                 height: 48,
                 borderRadius: '50%',
-                background: '#FEE2E2',
+                background: 'var(--danger-soft-bg)',
                 color: 'var(--danger)',
                 display: 'flex',
                 alignItems: 'center',
@@ -1319,7 +1319,7 @@ export default function UserMaster({
                 width: 48,
                 height: 48,
                 borderRadius: '50%',
-                background: '#FEE2E2',
+                background: 'var(--danger-soft-bg)',
                 color: 'var(--danger)',
                 display: 'flex',
                 alignItems: 'center',

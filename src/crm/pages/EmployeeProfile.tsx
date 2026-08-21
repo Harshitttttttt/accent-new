@@ -48,7 +48,7 @@ export default function EmployeeProfile({ onNavigate }: { onNavigate: (p: string
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{employee.name}</h2>
-              <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 700, background: '#F3E8F5', padding: '2px 8px', borderRadius: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 700, background: 'var(--brand-tint)', padding: '2px 8px', borderRadius: 6 }}>
                 {employee.employeeCode || employee.id}
               </span>
               <span className="badge badge-success" style={{ fontSize: 11 }}>{employee.status}</span>
@@ -70,7 +70,7 @@ export default function EmployeeProfile({ onNavigate }: { onNavigate: (p: string
         {/* Quick stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16 }}>
           {[
-            { label: 'Utilization', value: `${employee.utilization}%`, color: employee.utilization >= 85 ? '#DC2626' : 'var(--brand-primary)' },
+            { label: 'Utilization', value: `${employee.utilization}%`, color: employee.utilization >= 85 ? 'var(--danger)' : 'var(--brand-primary)' },
             { label: 'Active Projects', value: `${assignedProjects.length}`, color: 'var(--text-primary)' },
             { label: 'Skills', value: `${employee.skills.length}`, color: 'var(--text-primary)' },
             { label: 'Tenure', value: '5+ years', color: 'var(--text-primary)' },
@@ -128,11 +128,11 @@ export default function EmployeeProfile({ onNavigate }: { onNavigate: (p: string
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Utilization Trend</div>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={TIMESHEET_DATA}>
-                  <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} width={30} />
+                  <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={30} />
                   <Tooltip contentStyle={customTooltipStyle} />
-                  <Bar dataKey="regular" fill="#64126D" radius={[4, 4, 0, 0]} stackId="a" name="Regular" />
-                  <Bar dataKey="overtime" fill="#06B6D4" radius={[4, 4, 0, 0]} stackId="a" name="Overtime" />
+                  <Bar dataKey="regular" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} stackId="a" name="Regular" />
+                  <Bar dataKey="overtime" fill="var(--brand-cyan)" radius={[4, 4, 0, 0]} stackId="a" name="Overtime" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -188,8 +188,8 @@ export default function EmployeeProfile({ onNavigate }: { onNavigate: (p: string
                   <tr key={p.month}>
                     <td style={{ fontWeight: 600, fontSize: 13 }}>{p.month}</td>
                     <td style={{ fontSize: 13 }}>₹ {p.basic.toLocaleString('en-IN')}</td>
-                    <td style={{ fontSize: 13, color: '#16A34A' }}>+₹ {p.allowances.toLocaleString('en-IN')}</td>
-                    <td style={{ fontSize: 13, color: '#DC2626' }}>-₹ {p.deductions.toLocaleString('en-IN')}</td>
+                    <td style={{ fontSize: 13, color: 'var(--success)' }}>+₹ {p.allowances.toLocaleString('en-IN')}</td>
+                    <td style={{ fontSize: 13, color: 'var(--danger)' }}>-₹ {p.deductions.toLocaleString('en-IN')}</td>
                     <td style={{ fontSize: 14, fontWeight: 800, color: 'var(--brand-primary)' }}>₹ {p.net.toLocaleString('en-IN')}</td>
                     <td><span className="badge badge-success" style={{ fontSize: 11 }}>Processed</span></td>
                   </tr>
@@ -203,9 +203,9 @@ export default function EmployeeProfile({ onNavigate }: { onNavigate: (p: string
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
               {[
-                { label: 'Present Days', value: 83, color: '#16A34A' },
-                { label: 'Absent Days', value: 1, color: '#DC2626' },
-                { label: 'Leave Days', value: 4, color: '#F59E0B' },
+                { label: 'Present Days', value: 83, color: 'var(--success)' },
+                { label: 'Absent Days', value: 1, color: 'var(--danger)' },
+                { label: 'Leave Days', value: 4, color: 'var(--warning)' },
                 { label: 'OT Hours', value: 20, color: 'var(--brand-primary)' },
               ].map(s => (
                 <div key={s.label} className="kpi-card">
@@ -224,15 +224,15 @@ export default function EmployeeProfile({ onNavigate }: { onNavigate: (p: string
                   {ATTENDANCE.map(a => (
                     <tr key={a.month}>
                       <td style={{ fontWeight: 600, fontSize: 13 }}>{a.month} 2026</td>
-                      <td style={{ fontSize: 13, color: '#16A34A', fontWeight: 600 }}>{a.present} days</td>
-                      <td style={{ fontSize: 13, color: a.absent > 0 ? '#DC2626' : 'var(--text-muted)', fontWeight: a.absent > 0 ? 600 : 400 }}>{a.absent} days</td>
-                      <td style={{ fontSize: 13, color: '#F59E0B', fontWeight: a.leave > 0 ? 600 : 400 }}>{a.leave} days</td>
+                      <td style={{ fontSize: 13, color: 'var(--success)', fontWeight: 600 }}>{a.present} days</td>
+                      <td style={{ fontSize: 13, color: a.absent > 0 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: a.absent > 0 ? 600 : 400 }}>{a.absent} days</td>
+                      <td style={{ fontSize: 13, color: 'var(--warning)', fontWeight: a.leave > 0 ? 600 : 400 }}>{a.leave} days</td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div className="progress-bar" style={{ width: 80 }}>
-                            <div className="progress-bar-fill" style={{ width: `${Math.round(a.present / (a.present + a.absent + a.leave) * 100)}%`, background: '#16A34A' }} />
+                            <div className="progress-bar-fill" style={{ width: `${Math.round(a.present / (a.present + a.absent + a.leave) * 100)}%`, background: 'var(--success)' }} />
                           </div>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#16A34A' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--success)' }}>
                             {Math.round(a.present / (a.present + a.absent + a.leave) * 100)}%
                           </span>
                         </div>

@@ -57,11 +57,11 @@ export default function FinancialDashboard() {
         {/* KPI Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
           {[
-            { label: 'Total Invoiced', value: fmt(totalInvoiced), icon: <TrendingUp size={18} />, color: '#64126D', badge: null },
-            { label: 'Paid', value: fmt(totalPaid), icon: <CheckCircle size={18} />, color: '#16A34A', badge: 'badge-success' },
-            { label: 'Pending', value: fmt(totalPending), icon: <TrendingUp size={18} />, color: '#F59E0B', badge: 'badge-warning' },
-            { label: 'Overdue', value: fmt(totalOverdue), icon: <AlertCircle size={18} />, color: '#DC2626', badge: 'badge-danger' },
-            { label: 'Expenses MTD', value: fmt(totalExpenses), icon: <TrendingDown size={18} />, color: '#475569', badge: null },
+            { label: 'Total Invoiced', value: fmt(totalInvoiced), icon: <TrendingUp size={18} />, color: 'var(--brand-primary)', badge: null },
+            { label: 'Paid', value: fmt(totalPaid), icon: <CheckCircle size={18} />, color: 'var(--success)', badge: 'badge-success' },
+            { label: 'Pending', value: fmt(totalPending), icon: <TrendingUp size={18} />, color: 'var(--warning)', badge: 'badge-warning' },
+            { label: 'Overdue', value: fmt(totalOverdue), icon: <AlertCircle size={18} />, color: 'var(--danger)', badge: 'badge-danger' },
+            { label: 'Expenses MTD', value: fmt(totalExpenses), icon: <TrendingDown size={18} />, color: 'var(--brand-steel)', badge: null },
           ].map(kpi => (
             <div key={kpi.label} className="kpi-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -69,7 +69,7 @@ export default function FinancialDashboard() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{kpi.label}</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: kpi.color, marginTop: 4 }}>{kpi.value}</div>
                 </div>
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: kpi.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', color: kpi.color }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: `color-mix(in srgb, ${kpi.color} 14%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: kpi.color }}>
                   {kpi.icon}
                 </div>
               </div>
@@ -87,11 +87,11 @@ export default function FinancialDashboard() {
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={CASHFLOW_DATA} barGap={4}>
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} width={44} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} width={44} />
                 <Tooltip contentStyle={customTooltipStyle} formatter={(v) => [fmt(Number(v)), '']} />
-                <Bar dataKey="inflow" fill="#64126D" radius={[4, 4, 0, 0]} name="Inflow" />
-                <Bar dataKey="outflow" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Outflow" />
+                <Bar dataKey="inflow" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} name="Inflow" />
+                <Bar dataKey="outflow" fill="var(--border)" radius={[4, 4, 0, 0]} name="Outflow" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -104,7 +104,7 @@ export default function FinancialDashboard() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {AGING_DATA.map((b, i) => {
-                const colors = ['#64126D', '#F59E0B', '#DC2626', '#7F1D1D']
+                const colors = ['var(--brand-primary)', 'var(--warning)', 'var(--danger)', 'var(--danger-soft-fg)']
                 const pct = Math.round((b.amount / AGING_DATA.reduce((s, x) => s + x.amount, 0)) * 100)
                 return (
                   <div key={b.bucket}>

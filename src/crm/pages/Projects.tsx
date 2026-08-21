@@ -65,7 +65,7 @@ export default function Projects({ onNavigate }: { onNavigate: (p: string) => vo
         <div style={{ display: 'flex', gap: 6 }}>
           {STATUSES.map(s => (
             <button key={s} type="button" onClick={() => setStatusFilter(s)}
-              className="btn-ghost" style={{ fontSize: 12.5, padding: '5px 12px', borderRadius: 999, background: statusFilter === s ? '#F3E8F5' : undefined, color: statusFilter === s ? 'var(--brand-primary)' : undefined, fontWeight: statusFilter === s ? 600 : 500 }}>
+              className="btn-ghost" style={{ fontSize: 12.5, padding: '5px 12px', borderRadius: 999, background: statusFilter === s ? 'var(--brand-tint)' : undefined, color: statusFilter === s ? 'var(--brand-primary)' : undefined, fontWeight: statusFilter === s ? 600 : 500 }}>
               {s === 'All' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}
             </button>
           ))}
@@ -131,7 +131,7 @@ export default function Projects({ onNavigate }: { onNavigate: (p: string) => vo
                       <td style={{ minWidth: 140 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div className="progress-bar" style={{ flex: 1 }}>
-                            <div className="progress-bar-fill" style={{ width: `${p.progress}%`, background: p.progress === 100 ? '#16A34A' : p.progress > 60 ? 'var(--brand-primary)' : '#06B6D4' }} />
+                            <div className="progress-bar-fill" style={{ width: `${p.progress}%`, background: p.progress === 100 ? 'var(--success)' : p.progress > 60 ? 'var(--brand-primary)' : 'var(--brand-cyan)' }} />
                           </div>
                           <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 30 }}>{p.progress}%</span>
                         </div>

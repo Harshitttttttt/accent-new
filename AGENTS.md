@@ -5,7 +5,7 @@ AccentCRM for Accent Techno Solutions Pvt Ltd. TanStack Start (Vite 8 + Nitro SS
 ## Commands
 
 ```bash
-pnpm dev                          # Vite dev server port 3000
+pnpm dev                          # Vite dev server, port from DEV_PORT in .env (default 3000)
 pnpm build                        # vite build && tsc --noEmit (produces .output/server/index.mjs)
 pnpm typecheck                    # tsc --noEmit only
 pnpm start                        # node .output/server/index.mjs

@@ -490,7 +490,7 @@ export default function ActivityMaster() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       {feedback && (
-        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 150, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderRadius: 8, background: feedback.type === 'success' ? '#16A34A' : '#DC2626', color: '#fff', fontWeight: 600, fontSize: 13.5, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 150, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderRadius: 8, background: feedback.type === 'success' ? 'var(--success-soft-bg)' : 'var(--danger-soft-bg)', color: feedback.type === 'success' ? 'var(--success-soft-fg)' : 'var(--danger-soft-fg)', fontWeight: 600, fontSize: 13.5, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
           {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{feedback.message}</span>
         </div>
@@ -522,7 +522,7 @@ export default function ActivityMaster() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', background: '#fff', padding: '0 28px' }}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '0 28px' }}>
         {([
           { key: 'disciplines' as const, label: 'Disciplines', icon: Layers, count: disciplines.length },
           { key: 'activities' as const, label: 'Activities', icon: LayoutGrid, count: activities.length },
@@ -537,13 +537,13 @@ export default function ActivityMaster() {
               color: tab === t.key ? 'var(--brand-primary)' : 'var(--text-muted)', fontWeight: tab === t.key ? 700 : 500, fontSize: 13, background: 'transparent',
             }}
           >
-            <t.icon size={14} /> {t.label} <span className="badge" style={{ fontSize: 11, background: tab === t.key ? 'var(--brand-primary)' : 'var(--surface-secondary)', color: tab === t.key ? '#fff' : 'var(--text-muted)' }}>{t.count}</span>
+            <t.icon size={14} /> {t.label} <span className="badge" style={{ fontSize: 11, background: tab === t.key ? 'var(--brand-primary)' : 'var(--surface-secondary)', color: tab === t.key ? 'var(--on-brand)' : 'var(--text-muted)' }}>{t.count}</span>
           </button>
         ))}
       </div>
 
       {/* Toolbar per tab */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 28px', background: '#fff', borderBottom: '1px solid var(--border)', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 28px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {tab !== 'disciplines' && (
             <select className="input-base" style={{ width: 'auto', fontSize: 13, height: 32 }} value={disciplineFilter} onChange={(e) => { setDisciplineFilter(e.target.value); setActivityFilter('All') }}>

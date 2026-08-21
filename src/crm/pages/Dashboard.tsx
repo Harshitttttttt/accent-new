@@ -20,7 +20,7 @@ function KPICard({ title, value, sub, trend, trendLabel, icon, iconColor, accent
           <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, marginTop: 4 }}>{value}</div>
           {sub && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
         </div>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: accent || iconColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: accent || `color-mix(in srgb, ${iconColor} 14%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor }}>
           {icon}
         </div>
       </div>
@@ -57,12 +57,12 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
     <div style={{ padding: '24px 28px', overflowY: 'auto', height: '100%' }}>
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16, marginBottom: 24 }}>
-        <KPICard title="Active Projects" value="4" sub="7 total projects" trend="up" trendLabel="+2" icon={<FolderKanban size={20} />} iconColor="#64126D" />
-        <KPICard title="Open Leads" value="8" sub="AED 22.1M pipeline" trend="up" trendLabel="+3" icon={<Users size={20} />} iconColor="#06B6D4" />
-        <KPICard title="Revenue MTD" value="AED 1.65M" sub="vs AED 2.0M target" trend="down" trendLabel="-17.5%" icon={<DollarSign size={20} />} iconColor="#16A34A" />
-        <KPICard title="Outstanding" value={`AED ${(overdueTotal / 1000).toFixed(0)}K`} sub={`${overdue.length} overdue invoices`} trend="down" trendLabel="Overdue" icon={<AlertCircle size={20} />} iconColor="#DC2626" />
-        <KPICard title="Utilization" value="76%" sub="Avg across 7 engineers" trend="up" trendLabel="+4%" icon={<Zap size={20} />} iconColor="#F59E0B" />
-        <KPICard title="Proposals" value="4" sub="2 submitted, 1 negotiation" icon={<FileText size={20} />} iconColor="#86288F" />
+        <KPICard title="Active Projects" value="4" sub="7 total projects" trend="up" trendLabel="+2" icon={<FolderKanban size={20} />} iconColor="var(--brand-primary)" />
+        <KPICard title="Open Leads" value="8" sub="AED 22.1M pipeline" trend="up" trendLabel="+3" icon={<Users size={20} />} iconColor="var(--brand-cyan)" />
+        <KPICard title="Revenue MTD" value="AED 1.65M" sub="vs AED 2.0M target" trend="down" trendLabel="-17.5%" icon={<DollarSign size={20} />} iconColor="var(--success)" />
+        <KPICard title="Outstanding" value={`AED ${(overdueTotal / 1000).toFixed(0)}K`} sub={`${overdue.length} overdue invoices`} trend="down" trendLabel="Overdue" icon={<AlertCircle size={20} />} iconColor="var(--danger)" />
+        <KPICard title="Utilization" value="76%" sub="Avg across 7 engineers" trend="up" trendLabel="+4%" icon={<Zap size={20} />} iconColor="var(--warning)" />
+        <KPICard title="Proposals" value="4" sub="2 submitted, 1 negotiation" icon={<FileText size={20} />} iconColor="var(--brand-secondary)" />
       </div>
 
       {/* Charts row */}
@@ -80,19 +80,19 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
             <AreaChart data={REVENUE_DATA} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#64126D" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#64126D" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="tgtGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.12} />
-                  <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--brand-cyan)" stopOpacity={0.12} />
+                  <stop offset="95%" stopColor="var(--brand-cyan)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} width={42} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} width={42} />
               <Tooltip contentStyle={customTooltipStyle} formatter={(v) => [`AED ${(Number(v) / 1000000).toFixed(2)}M`, '']} />
-              <Area type="monotone" dataKey="revenue" stroke="#64126D" strokeWidth={2} fill="url(#revGrad)" name="Revenue" />
-              <Area type="monotone" dataKey="target" stroke="#06B6D4" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#tgtGrad)" name="Target" />
+              <Area type="monotone" dataKey="revenue" stroke="var(--brand-primary)" strokeWidth={2} fill="url(#revGrad)" name="Revenue" />
+              <Area type="monotone" dataKey="target" stroke="var(--brand-cyan)" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#tgtGrad)" name="Target" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -134,12 +134,12 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={WORKLOAD_DATA} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
-              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#6B7280' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} width={44} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={44} />
               <Tooltip contentStyle={customTooltipStyle} formatter={(v) => [`${v}%`, 'Utilization']} />
               <Bar dataKey="utilization" radius={[0, 4, 4, 0]}>
                 {WORKLOAD_DATA.map((entry, i) => (
-                  <Cell key={i} fill={entry.utilization >= 90 ? '#DC2626' : entry.utilization >= 80 ? '#64126D' : entry.utilization >= 70 ? '#86288F' : '#06B6D4'} />
+                  <Cell key={i} fill={entry.utilization >= 90 ? 'var(--danger)' : entry.utilization >= 80 ? 'var(--brand-primary)' : entry.utilization >= 70 ? 'var(--brand-secondary)' : 'var(--brand-cyan)'} />
                 ))}
               </Bar>
             </BarChart>
@@ -219,7 +219,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div className="progress-bar" style={{ flex: 1 }}>
-                    <div className="progress-bar-fill" style={{ width: `${p.progress}%`, background: p.progress > 80 ? '#16A34A' : 'var(--brand-primary)' }} />
+                    <div className="progress-bar-fill" style={{ width: `${p.progress}%`, background: p.progress > 80 ? 'var(--success)' : 'var(--brand-primary)' }} />
                   </div>
                   <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 32 }}>{p.progress}%</span>
                 </div>

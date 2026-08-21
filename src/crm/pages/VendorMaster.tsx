@@ -345,7 +345,7 @@ export default function VendorMaster() {
       const fullName=`${primary.firstName} ${primary.lastName??''}`.trim()
       return (
         <div style={{display:'flex',alignItems:'center',gap:8,padding:'4px 8px',borderRadius:6,background:primary.isPrimary?'rgba(100,18,109,0.06)':'transparent',border:primary.isPrimary?'1px solid rgba(100,18,109,0.12)':'1px solid transparent'}}>
-          <div style={{width:24,height:24,borderRadius:999,background:primary.isPrimary?'var(--brand-primary)':'var(--surface-secondary)',color:primary.isPrimary?'#fff':'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700}}>{primary.firstName[0]?.toUpperCase()??'?'}</div>
+          <div style={{width:24,height:24,borderRadius:999,background:primary.isPrimary?'var(--brand-primary)':'var(--surface-secondary)',color:primary.isPrimary?'var(--on-brand)':'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700}}>{primary.firstName[0]?.toUpperCase()??'?'}</div>
           <div><div style={{fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>{fullName}{primary.isPrimary && <Star size={11} style={{color:'#EAB308',fill:'#EAB308'}} />}</div><div style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'var(--text-muted)',marginTop:1}}><Mail size={10} />{primary.email||'—'}{primary.designation && <span> · {primary.designation}</span>}</div></div>
         </div>
       )
@@ -369,7 +369,7 @@ export default function VendorMaster() {
       return r.isPrimary ? <span className="badge" style={{background:'rgba(234,179,8,0.15)',color:'#A16207',border:'1px solid rgba(234,179,8,0.3)',fontSize:10,display:'inline-flex',alignItems:'center',gap:3}}><Star size={10} style={{fill:'#EAB308',color:'#EAB308'}} /> Primary</span> : <button type="button" className="btn-ghost" style={{padding:'4px 8px',fontSize:11,border:'1px solid var(--border)',borderRadius:999}} title="Set as primary" onClick={()=>handleSetPrimary(r.id)}>Set primary</button>
     }}),
     contactHelper.display({ id:'vendor', header:()=>'Vendor', cell:(info)=>{ const r=info.row.original; return <span style={{fontSize:12,fontWeight:600}}>{r.vendorCode} <span style={{color:'var(--text-muted)',fontWeight:400}}>· {r.vendorName}</span></span> }}),
-    contactHelper.display({ id:'name', header:()=>'Contact', cell:(info)=>{ const r=info.row.original; const name=`${r.firstName} ${r.lastName??''}`.trim(); return <div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:26,height:26,borderRadius:999,background:r.isPrimary?'var(--brand-primary)':'var(--surface-secondary)',color:r.isPrimary?'#fff':'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,border:r.isPrimary?'2px solid rgba(234,179,8,0.6)':'none'}}>{r.firstName[0]?.toUpperCase()??'?'}</div><div><div style={{fontSize:13,fontWeight:r.isPrimary?700:500}}>{name}</div>{r.designation && <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.designation}</div>}</div></div> }}),
+    contactHelper.display({ id:'name', header:()=>'Contact', cell:(info)=>{ const r=info.row.original; const name=`${r.firstName} ${r.lastName??''}`.trim(); return <div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:26,height:26,borderRadius:999,background:r.isPrimary?'var(--brand-primary)':'var(--surface-secondary)',color:r.isPrimary?'var(--on-brand)':'var(--text-muted)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,border:r.isPrimary?'2px solid rgba(234,179,8,0.6)':'none'}}>{r.firstName[0]?.toUpperCase()??'?'}</div><div><div style={{fontSize:13,fontWeight:r.isPrimary?700:500}}>{name}</div>{r.designation && <div style={{fontSize:11,color:'var(--text-muted)'}}>{r.designation}</div>}</div></div> }}),
     contactHelper.display({ id:'email', header:()=>'Email', cell:(info)=>{ const v=info.row.original.email; return v ? <span style={{fontSize:12,display:'inline-flex',alignItems:'center',gap:4}}><Mail size={11} style={{color:'var(--text-muted)'}} />{v}</span> : <span style={{color:'var(--text-muted)',fontSize:12}}>—</span> }}),
     contactHelper.display({ id:'phone', header:()=>'Phone', cell:(info)=>{ const v=info.row.original.phone; return v ? <span style={{fontSize:12,display:'inline-flex',alignItems:'center',gap:4}}><Phone size={11} style={{color:'var(--text-muted)'}} />{v}</span> : <span style={{color:'var(--text-muted)',fontSize:12}}>—</span> }}),
     contactHelper.display({ id:'actions', header:()=><div style={{textAlign:'right'}}>Actions</div>, cell:(info)=>{ const r=info.row.original; return <div style={{textAlign:'right',display:'inline-flex',gap:6}}><button type="button" className="btn-ghost" style={{padding:'5px 8px'}} title="Edit" onClick={()=>{setEditingContact(r); setContactVendorPreselect(r.vendorId); setIsContactModalOpen(true)}}><Edit2 size={13} /></button><button type="button" className="btn-ghost" style={{padding:'5px 8px',color:'var(--danger)'}} title="Delete" onClick={()=>setDeleteContactTarget(r)}><Trash2 size={13} /></button></div> }}),
@@ -392,7 +392,7 @@ export default function VendorMaster() {
 
   return (
     <div style={{display:'flex',flexDirection:'column',height:'100%',position:'relative'}}>
-      {feedback && <div style={{position:'fixed',top:20,right:20,zIndex:150,display:'flex',alignItems:'center',gap:10,padding:'12px 18px',borderRadius:8,background:feedback.type==='success'?'#16A34A':'#DC2626',color:'#fff',fontWeight:600,fontSize:13.5,boxShadow:'0 10px 25px rgba(0,0,0,0.2)'}}>{feedback.type==='success'?<CheckCircle2 size={18} />:<AlertCircle size={18} />}<span>{feedback.message}</span></div>}
+      {feedback && <div style={{position:'fixed',top:20,right:20,zIndex:150,display:'flex',alignItems:'center',gap:10,padding:'12px 18px',borderRadius:8,background:feedback.type==='success'?'var(--success-soft-bg)':'var(--danger-soft-bg)',color:feedback.type==='success'?'var(--success-soft-fg)':'var(--danger-soft-fg)',fontWeight:600,fontSize:13.5,boxShadow:'0 10px 25px rgba(0,0,0,0.2)'}}>{feedback.type==='success'?<CheckCircle2 size={18} />:<AlertCircle size={18} />}<span>{feedback.message}</span></div>}
 
       {/* KPI */}
       <div style={{padding:'16px 28px',borderBottom:'1px solid var(--border)',background:'var(--surface-secondary)',display:'grid',gridTemplateColumns:'repeat(5, 1fr)',gap:12,flexShrink:0}}>
@@ -420,14 +420,14 @@ export default function VendorMaster() {
       </div>
 
       {/* Tabs */}
-      <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)',background:'#fff',padding:'0 28px'}}>
+      <div style={{display:'flex',gap:0,borderBottom:'1px solid var(--border)',background:'var(--surface)',padding:'0 28px'}}>
         {[
           {key:'vendors' as const,label:'Vendors',icon:Truck,count:vendors.length},
           {key:'contacts' as const,label:'Contacts',icon:Users,count:contactsFlat.length},
           {key:'emails' as const,label:'Emails',icon:Mail,count:emailsFlat.length},
         ].map((t)=>(
           <button key={t.key} type="button" onClick={()=>setTab(t.key)} style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',borderBottom:tab===t.key?'2px solid var(--brand-primary)':'2px solid transparent',color:tab===t.key?'var(--brand-primary)':'var(--text-muted)',fontWeight:tab===t.key?700:500,fontSize:13,background:'transparent'}}>
-            <t.icon size={14} /> {t.label} <span className="badge" style={{fontSize:11,background:tab===t.key?'var(--brand-primary)':'var(--surface-secondary)',color:tab===t.key?'#fff':'var(--text-muted)'}}>{t.count}</span>
+            <t.icon size={14} /> {t.label} <span className="badge" style={{fontSize:11,background:tab===t.key?'var(--brand-primary)':'var(--surface-secondary)',color:tab===t.key?'var(--on-brand)':'var(--text-muted)'}}>{t.count}</span>
           </button>
         ))}
       </div>
@@ -442,7 +442,7 @@ export default function VendorMaster() {
       {/* Detail drawer */}
       {detailVendor && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.35)',zIndex:90,display:'flex',justifyContent:'flex-end'}} onClick={()=>setDetailVendor(null)}>
-          <div className="card" style={{width:'100%',maxWidth:560,height:'100%',overflowY:'auto',padding:24,background:'#fff',boxShadow:'-8px 0 24px rgba(0,0,0,0.12)'}} onClick={(e)=>e.stopPropagation()}>
+          <div className="card" style={{width:'100%',maxWidth:560,height:'100%',overflowY:'auto',padding:24,background:'var(--surface)',boxShadow:'-8px 0 24px rgba(0,0,0,0.12)'}} onClick={(e)=>e.stopPropagation()}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
               <div>
                 <div style={{display:'flex',alignItems:'center',gap:8}}><Truck size={16} style={{color:'var(--brand-primary)'}} /><h3 style={{margin:0,fontSize:15,fontWeight:700}}>{detailVendor.name}</h3><span className={STATUS_BADGE[detailVendor.status]??'badge'} style={{fontSize:10}}>{detailVendor.status.replace('_',' ')}</span><span className="badge" style={{fontSize:10,background:'var(--surface-secondary)'}}>{CATEGORY_LABEL[detailVendor.vendorCategory]}</span></div>
@@ -463,7 +463,7 @@ export default function VendorMaster() {
                   {detailVendor.contacts.slice().sort((a,b)=> a.isPrimary===b.isPrimary?0:a.isPrimary?-1:1).map((ct)=>(
                     <div key={ct.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'10px 12px',borderRadius:8,background:ct.isPrimary?'rgba(100,18,109,0.06)':'var(--surface-secondary)',border:ct.isPrimary?'1px solid rgba(100,18,109,0.18)':'1px solid var(--border)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-                        <div style={{width:30,height:30,borderRadius:999,background:ct.isPrimary?'var(--brand-primary)':'#fff',color:ct.isPrimary?'#fff':'var(--text-muted)',border:ct.isPrimary?'2px solid #EAB308':'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:11}}>{ct.firstName[0]?.toUpperCase()}</div>
+                        <div style={{width:30,height:30,borderRadius:999,background:ct.isPrimary?'var(--brand-primary)':'var(--surface-secondary)',color:ct.isPrimary?'var(--on-brand)':'var(--text-muted)',border:ct.isPrimary?'2px solid #EAB308':'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:11}}>{ct.firstName[0]?.toUpperCase()}</div>
                         <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:ct.isPrimary?700:600,display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}}>{ct.firstName} {ct.lastName??''} {ct.isPrimary && <span className="badge" style={{background:'#EAB308',color:'#fff',fontSize:10,display:'inline-flex',alignItems:'center',gap:2}}><Star size={8} fill="#fff" /> Primary</span>}</div><div style={{fontSize:11,color:'var(--text-muted)',display:'flex',alignItems:'center',gap:6,marginTop:2,flexWrap:'wrap'}}>{ct.designation && <span>{ct.designation}</span>}{ct.email && <span style={{display:'inline-flex',alignItems:'center',gap:3}}><Mail size={10} />{ct.email}</span>}{ct.phone && <span style={{display:'inline-flex',alignItems:'center',gap:3}}><Phone size={10} />{ct.phone}</span>}</div></div>
                       </div>
                       <div style={{display:'flex',gap:4,flexShrink:0}}>

@@ -5,11 +5,11 @@ import { LEADS } from '../data/mock'
 const STAGES = ['Prospecting', 'Qualified', 'Proposal Sent', 'Negotiation', 'Closed Won']
 
 const STAGE_COLORS: Record<string, string> = {
-  Prospecting: '#475569',
-  Qualified: '#2563EB',
-  'Proposal Sent': '#F59E0B',
-  Negotiation: '#86288F',
-  'Closed Won': '#16A34A',
+  Prospecting: 'var(--brand-steel)',
+  Qualified: 'var(--info)',
+  'Proposal Sent': 'var(--warning)',
+  Negotiation: 'var(--brand-secondary)',
+  'Closed Won': 'var(--success)',
 }
 
 function fmt(n: number) {
@@ -19,7 +19,7 @@ function fmt(n: number) {
 }
 
 function ScoreBar({ score }: { score: number }) {
-  const color = score >= 80 ? '#16A34A' : score >= 60 ? '#F59E0B' : '#DC2626'
+  const color = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : 'var(--danger)'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <div className="progress-bar" style={{ width: 40, height: 4 }}>

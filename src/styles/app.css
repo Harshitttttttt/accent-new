@@ -13,12 +13,12 @@
   --color-popover: var(--surface);
   --color-popover-foreground: var(--text-primary);
   --color-primary: var(--brand-primary);
-  --color-primary-foreground: #ffffff;
+  --color-primary-foreground: var(--on-brand);
   --color-secondary: var(--surface-secondary);
   --color-secondary-foreground: var(--text-primary);
   --color-muted: var(--surface-secondary);
   --color-muted-foreground: var(--text-muted);
-  --color-accent: #f3e8f5;
+  --color-accent: var(--brand-tint);
   --color-accent-foreground: var(--brand-primary);
   --color-destructive: var(--danger);
   --color-border: var(--border);
