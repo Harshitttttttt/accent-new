@@ -384,6 +384,19 @@ export async function isUserAdmin(userId: string): Promise<boolean> {
   return roles.some((r) => r.code === 'admin')
 }
 
+/** True when the user's roles grant the given permission code (e.g. 'leads.read'). */
+export async function userHasPermission(userId: string, permissionCode: string): Promise<boolean> {
+  const rows = await db
+    .select({ permissionId: permissionsTable.id })
+    .from(userRolesTable)
+    .innerJoin(rolePermissionsTable, eq(userRolesTable.roleId, rolePermissionsTable.roleId))
+    .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
+    .where(and(eq(userRolesTable.userId, userId), eq(permissionsTable.code, permissionCode)))
+    .limit(1)
+
+  return rows.length > 0
+}
+
 export async function createUserWithRole(values: {
   email: string
   username: string

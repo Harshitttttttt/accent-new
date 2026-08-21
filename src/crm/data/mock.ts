@@ -19,17 +19,6 @@ export const PROJECTS = [
   { id: 'PRJ-007', name: 'Borouge Utilities Optimization', client: 'Borouge', status: 'on-hold', phase: 'Detailed Design', budget: 1200000, spent: 540000, progress: 41, manager: 'Sara Mohammed', team: ['E002', 'E006', 'E003'], startDate: '2025-03-01', endDate: '2026-01-31', priority: 'medium', contract: 'Reimbursable', location: 'Ruwais', discipline: 'Process' },
 ];
 
-export const LEADS = [
-  { id: 'L001', company: 'Abu Dhabi Ports', contact: 'Mohammed Al-Dhaheri', email: 'mo.dhaheri@adports.ae', value: 2500000, stage: 'Prospecting', score: 72, source: 'Referral', assignee: 'Sara Mohammed', lastActivity: '2026-08-15', probability: 25 },
-  { id: 'L002', company: 'Emirates Global Aluminium', contact: 'Robert Chen', email: 'r.chen@ega.ae', value: 4800000, stage: 'Qualified', score: 85, source: 'Direct', assignee: 'Ahmed Al-Rashidi', lastActivity: '2026-08-14', probability: 45 },
-  { id: 'L003', company: 'Etihad Airways MRO', contact: 'Priya Nair', email: 'p.nair@etihad.ae', value: 680000, stage: 'Proposal Sent', score: 68, source: 'LinkedIn', assignee: 'Sara Mohammed', lastActivity: '2026-08-12', probability: 60 },
-  { id: 'L004', company: 'National Marine Dredging', contact: 'Jassim Al-Rumaihi', email: 'j.rumaihi@nmdc.ae', value: 1200000, stage: 'Negotiation', score: 91, source: 'Tender', assignee: 'Khalid Al-Mansouri', lastActivity: '2026-08-16', probability: 75 },
-  { id: 'L005', company: 'ENOC Refineries', contact: 'David Williams', email: 'd.williams@enoc.com', value: 3200000, stage: 'Qualified', score: 78, source: 'Conference', assignee: 'Omar Hassan', lastActivity: '2026-08-10', probability: 50 },
-  { id: 'L006', company: 'Sharjah Electricity', contact: 'Hessa Al-Qassimi', email: 'h.qassimi@sewa.gov.ae', value: 950000, stage: 'Prospecting', score: 55, source: 'Cold Outreach', assignee: 'Noor Al-Sabah', lastActivity: '2026-08-08', probability: 20 },
-  { id: 'L007', company: 'Taqa Energy', contact: 'Chris Johnson', email: 'c.johnson@taqa.com', value: 6100000, stage: 'Negotiation', score: 88, source: 'Referral', assignee: 'Sara Mohammed', lastActivity: '2026-08-17', probability: 80 },
-  { id: 'L008', company: 'Aldar Properties', contact: 'Fatima Bint Hamdan', email: 'f.hamdan@aldar.com', value: 420000, stage: 'Closed Won', score: 95, source: 'Repeat', assignee: 'Sara Mohammed', lastActivity: '2026-08-05', probability: 100 },
-  { id: 'L009', company: 'Dubai Electricity & Water', contact: 'Michael Torres', email: 'm.torres@dewa.gov.ae', value: 2900000, stage: 'Proposal Sent', score: 74, source: 'Tender', assignee: 'Ahmed Al-Rashidi', lastActivity: '2026-08-13', probability: 55 },
-];
 
 export const PROPOSALS = [
   { id: 'PRP-001', title: 'Gas Plant Debottlenecking - Technical Study', client: 'ADNOC Gas', value: 380000, margin: 28, status: 'Submitted', assignee: 'Sara Mohammed', submittedDate: '2026-08-01', expectedClose: '2026-09-15' },

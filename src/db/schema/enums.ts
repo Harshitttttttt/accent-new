@@ -29,3 +29,23 @@ export const leadSourceCodeEnum = pgEnum('lead_source_code', [
   'exhibition',
   'other',
 ])
+
+export const leadStageEnum = pgEnum('lead_stage', [
+  'prospecting',
+  'qualified',
+  'proposal_sent',
+  'negotiation',
+  'closed_won',
+  'closed_lost',
+])
+
+export const leadPriorityEnum = pgEnum('lead_priority', ['low', 'medium', 'high'])
+
+export const leadEnquiryTypeEnum = pgEnum('lead_enquiry_type', [
+  'Email',
+  'Phone',
+  'Meeting',
+  'WhatsApp',
+  'Tender',
+  'Other',
+])

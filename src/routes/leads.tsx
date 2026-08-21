@@ -1,18 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Leads from '~/crm/pages/Leads'
-import { getCrmSnapshot } from '~/lib/crm.functions'
+import { getLeadsPageData } from '~/lib/leads.functions'
 
 export const Route = createFileRoute('/leads')({
   ssr: true,
-  loader: () => getCrmSnapshot(),
+  loader: () => getLeadsPageData(),
   component: LeadsRoute,
 })
 
 function LeadsRoute() {
-  const snapshot = Route.useLoaderData()
+  const initialData = Route.useLoaderData()
   return (
-    <div className="h-full" data-route="leads" data-open-leads={snapshot.openLeads}>
-      <Leads />
+    <div className="h-full" data-route="leads">
+      <Leads initialData={initialData} />
     </div>
   )
 }
