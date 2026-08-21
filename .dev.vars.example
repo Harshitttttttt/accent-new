@@ -1,0 +1,4 @@
+# Local Workers dev — copied to `.dev.vars` (gitignored). `vite dev` with
+# `@cloudflare/vite-plugin` loads this into workerd's `process.env`.
+# For Node-only scripts (`drizzle-kit`, `tsx`) also keep `.env`.
+DEV_DB_URL=postgresql://neondb_owner:password@ep-xxx-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require

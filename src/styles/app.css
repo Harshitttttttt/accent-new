@@ -1,0 +1,68 @@
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/inter/latin-800.css';
+@import './crm.css';
+
+@theme inline {
+  --color-background: var(--surface);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--brand-primary);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--surface-secondary);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--surface-secondary);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: #f3e8f5;
+  --color-accent-foreground: var(--brand-primary);
+  --color-destructive: var(--danger);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--brand-secondary);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+@layer base {
+  :where(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  .search-box input:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 100;
+    transform: translateY(-150%);
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #fff;
+    background: var(--brand-primary);
+    font-size: 13px;
+    font-weight: 600;
+    transition: transform 0.15s ease;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,85 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: A
+          - generic [ref=e9]:
+            - generic [ref=e10]: AccentCRM
+            - generic [ref=e11]: Engineering Suite
+        - button "Collapse sidebar" [ref=e12] [cursor=pointer]
+      - generic [ref=e15]:
+        - generic [ref=e16]: Favorites
+        - button "Dashboard" [ref=e19] [cursor=pointer]
+        - button "Projects" [ref=e26] [cursor=pointer]
+        - button "Sale Invoices" [ref=e30] [cursor=pointer]
+        - generic [ref=e35]: Recents
+        - button "ADNOC Gas Plant Expansion" [ref=e39] [cursor=pointer]
+        - button "Sara Mohammed" [ref=e43] [cursor=pointer]
+        - button "Proposals" [ref=e50] [cursor=pointer]
+        - generic [ref=e55]:
+          - generic [ref=e56]: Core
+          - button "Dashboard" [ref=e58] [cursor=pointer]
+          - button "Leads" [ref=e66] [cursor=pointer]
+          - button "Proposals" [ref=e74] [cursor=pointer]
+          - button "Projects" [ref=e80] [cursor=pointer]
+        - generic [ref=e84]:
+          - generic [ref=e85]: Reports
+          - button "Toggle Reports menu" [ref=e87] [cursor=pointer]:
+            - generic [ref=e89]: Reports
+        - generic [ref=e92]:
+          - generic [ref=e93]: Administration
+          - button "Quotations" [ref=e95] [cursor=pointer]
+          - button "Purchase Orders" [ref=e101] [cursor=pointer]
+          - button "Sale Invoices" [ref=e108] [cursor=pointer]
+          - button "Purchase Invoices" [ref=e114] [cursor=pointer]
+          - button "Payment Received" [ref=e120] [cursor=pointer]
+          - button "Payment Issued" [ref=e125] [cursor=pointer]
+          - button "Expenses" [ref=e131] [cursor=pointer]
+          - button "Cash Voucher" [ref=e136] [cursor=pointer]
+          - button "Material Requisition" [ref=e142] [cursor=pointer]
+          - button "Salary Sheet" [ref=e149] [cursor=pointer]
+          - button "Salary Slip" [ref=e155] [cursor=pointer]
+          - button "Activity Logs" [ref=e161] [cursor=pointer]
+          - button "Live Monitoring" [ref=e166] [cursor=pointer]
+          - button "Todos" [ref=e171] [cursor=pointer]
+        - generic [ref=e176]:
+          - generic [ref=e177]: Masters
+          - button "Toggle Masters menu" [ref=e179] [cursor=pointer]:
+            - generic [ref=e182]: Masters
+        - generic [ref=e185]:
+          - generic [ref=e186]: Collaboration
+          - button "Messages" [ref=e188] [cursor=pointer]
+          - button "Tasks" [ref=e193] [cursor=pointer]
+          - button "Support Tickets" [ref=e199] [cursor=pointer]
+      - generic [ref=e203]:
+        - generic [ref=e204]: SM
+        - generic [ref=e205]:
+          - generic [ref=e206]: Sara Mohammed
+          - generic [ref=e207]: Project Manager
+        - img [ref=e208] [cursor=pointer]
+    - generic [ref=e211]:
+      - banner [ref=e212]:
+        - generic [ref=e213]:
+          - heading "Software Master" [level=1] [ref=e214]
+          - generic [ref=e215]: Accent Techno Solutions
+        - generic [ref=e217]:
+          - searchbox "Search projects, leads, and clients" [ref=e221]
+          - generic [ref=e222]:
+            - generic [ref=e223]: ⌘
+            - generic [ref=e224]: K
+        - generic [ref=e225]:
+          - button "Switch to dark mode" [ref=e226] [cursor=pointer]
+          - button "Open command palette" [ref=e229] [cursor=pointer]
+          - button "Open messages" [ref=e232] [cursor=pointer]
+          - button "Open notifications" [ref=e236] [cursor=pointer]
+          - button "New" [ref=e242] [cursor=pointer]
+          - generic [ref=e248] [cursor=pointer]:
+            - generic [ref=e249]: SM
+            - generic [ref=e250]:
+              - generic [ref=e251]: Sara M.
+              - generic [ref=e252]: Admin
+      - main [ref=e253]:
+        - generic [ref=e254]: Loading software masters…

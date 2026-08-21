@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "Neon": {
+        "type": "remote",
+        "url": "https://mcp.neon.tech/mcp?readonly=true&projectId=icy-boat-74530454"
+      },
+      "context7": {
+        "type": "remote",
+        "url": "https://mcp.context7.com/mcp"
+      },
+      "playwright": {
+        "type": "local",
+        "command": [
+          "pnpm",
+          "dlx",
+          "@playwright/mcp@latest"
+        ]
+      },
+      "shadcn": {
+        "type": "local",
+        "command": ["pnpm", "dlx", "shadcn@latest", "mcp"]
+      }
+    }
+  }
+}

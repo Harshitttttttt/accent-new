@@ -1,0 +1,20 @@
+- generic [active] [ref=f1e1]:
+  - link "Skip to register form" [ref=f1e2] [cursor=pointer]:
+    - /url: "#register-main"
+  - generic [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - link [ref=f1e6] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f1e10]: Engineering suite
+    - main [ref=f1e11]:
+      - generic [ref=f1e12]:
+        - generic [ref=f1e13]:
+          - generic [ref=f1e18]:
+            - heading "Administrator access required" [level=1] [ref=f1e19]
+            - paragraph [ref=f1e20]: User registration is restricted to authorized administrators. Please sign in to manage workspace accounts.
+          - button "Sign in as administrator" [ref=f1e21]
+        - generic [ref=f1e22]:
+          - text: Already have credentials?
+          - link "Sign in to workspace" [ref=f1e23] [cursor=pointer]:
+            - /url: /login
+    - paragraph [ref=f1e24]: Secure workspace access and role-based access control.
