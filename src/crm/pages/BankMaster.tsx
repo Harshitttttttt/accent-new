@@ -40,6 +40,7 @@ import {
   updateBankContactAction,
 } from '~/lib/masters/bank/functions'
 
+// BankSchema
 type Bank = {
   id: string
   code: string
