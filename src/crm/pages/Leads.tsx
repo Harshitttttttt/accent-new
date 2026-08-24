@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
   IndianRupee,
   LayoutGrid,
   List,
+  Loader2,
   Mail,
   MapPin,
   Pencil,
@@ -14,9 +15,20 @@ import {
   X,
 } from 'lucide-react'
 import { useHotkey } from '@tanstack/react-hotkeys'
+import { useForm, type AnyFieldApi } from '@tanstack/react-form'
+import { z } from 'zod'
 import { Button } from '~/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
 import { Input } from '~/components/ui/input'
 import { Field, FieldLabel } from '~/components/ui/field'
+import { Textarea } from '~/components/ui/textarea'
 import {
   createLeadAction,
   deleteLeadAction,
@@ -63,7 +75,7 @@ function initials(name: string): string {
   return name.split(' ').map((n) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 }
 
-/** Narrow a raw form string to a literal union, falling back when out of range. */
+/** Narrow a raw string to a literal union, falling back when out of range. */
 function oneOf<T extends string>(values: readonly T[], raw: string, fallback: T): T {
   return values.includes(raw as T) ? (raw as T) : fallback
 }
@@ -90,10 +102,8 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  useHotkey({ key: 'Escape' }, () => {
-    setForm({ lead: null, open: false })
-    setDeleteTarget(null)
-  })
+  // The lead form Sheet handles its own Escape/focus; this covers the delete confirm modal.
+  useHotkey({ key: 'Escape' }, () => setDeleteTarget(null))
   useHotkey({ key: 'k', mod: true }, (e) => {
     e.preventDefault()
     searchRef.current?.focus()
@@ -186,51 +196,9 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
   }
 
   // ── Create / edit / delete ─────────────────────────────────────────────
-  async function handleSaveLead(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function handleSaveLead(values: LeadFormValues) {
     setIsSaving(true)
-    const fd = new FormData(e.currentTarget)
-
-    const companyId = String(fd.get('companyId') ?? '')
-    const companyName = String(fd.get('companyName') ?? '').trim()
-    const selectedCompany = data.options.companies.find((c) => c.id === companyId)
-    const finalCompanyName = selectedCompany ? selectedCompany.name : companyName
-
-    const valueRupees = String(fd.get('valueRupees') ?? '').trim()
-    const probabilityRaw = String(fd.get('probability') ?? '').trim()
-    const scoreRaw = String(fd.get('score') ?? '').trim()
-    const ccRaw = String(fd.get('ccEmails') ?? '')
-
-    const payload = {
-      companyId: companyId || null,
-      companyName: finalCompanyName,
-      contactName: String(fd.get('contactName') ?? '') || null,
-      contactEmail: String(fd.get('contactEmail') ?? '') || null,
-      contactPhone: String(fd.get('contactPhone') ?? '') || null,
-      designation: String(fd.get('designation') ?? '') || null,
-      inquiryEmail: String(fd.get('inquiryEmail') ?? '') || null,
-      ccEmails: ccRaw.split(',').map((s) => s.trim()).filter(Boolean),
-      city: String(fd.get('city') ?? '') || null,
-      projectDescription: String(fd.get('projectDescription') ?? '') || null,
-      enquiryType: oneOf(LEAD_ENQUIRY_TYPES, String(fd.get('enquiryType') ?? ''), 'Email'),
-      sourceCode: oneOf(LEAD_SOURCE_CODES, String(fd.get('sourceCode') ?? ''), 'website'),
-      stage: oneOf(LEAD_STAGES, String(fd.get('stage') ?? ''), 'prospecting'),
-      priority: oneOf(LEAD_PRIORITIES, String(fd.get('priority') ?? ''), 'medium'),
-      valuePaise: valueRupees === '' ? null : parseINRToPaise(valueRupees),
-      probability: probabilityRaw === '' ? null : Number(probabilityRaw),
-      score: scoreRaw === '' ? null : Number(scoreRaw),
-      assignedTo: String(fd.get('assignedTo') ?? '') || null,
-      enquiryDate: String(fd.get('enquiryDate') ?? '') || null,
-      expectedCloseDate: String(fd.get('expectedCloseDate') ?? '') || null,
-      lostReason: String(fd.get('lostReason') ?? '') || null,
-      notes: String(fd.get('notes') ?? '') || null,
-    }
-
-    if (!finalCompanyName || finalCompanyName.length < 2) {
-      showFeedback('error', 'Company name is required.')
-      setIsSaving(false)
-      return
-    }
+    const payload = toLeadPayload(values, data.options.companies)
 
     try {
       const res = form.lead
@@ -773,18 +741,16 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
         </div>
       )}
 
-      {/* MODAL: CREATE / EDIT LEAD */}
-      {form.open && (
-        <LeadFormModal
-          key={form.lead?.id ?? 'new'}
-          lead={form.lead}
-          defaultStage={form.stage}
-          options={data.options}
-          isSaving={isSaving}
-          onCancel={() => setForm({ lead: null, open: false })}
-          onSubmit={handleSaveLead}
-        />
-      )}
+      {/* SHEET: CREATE / EDIT LEAD */}
+      <LeadFormSheet
+        key={`${form.lead?.id ?? 'new'}:${form.stage ?? ''}`}
+        open={form.open}
+        lead={form.lead}
+        defaultStage={form.stage}
+        options={data.options}
+        onCancel={() => setForm({ lead: null, open: false })}
+        onSubmit={handleSaveLead}
+      />
 
       {/* MODAL: DELETE CONFIRM */}
       {deleteTarget && (
@@ -857,197 +823,524 @@ function ScoreBar({ score }: { score: number }) {
   )
 }
 
-function LeadFormModal({
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2.5">
+      <h4 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{title}</h4>
+      {children}
+    </section>
+  )
+}
+
+// ── Lead form schema & value mapping ─────────────────────────────────────
+const optionalEmail = z
+  .string()
+  .max(255)
+  .refine((v) => v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Enter a valid email address')
+
+function isParseableAmount(value: string): boolean {
+  if (value.trim() === '') return true
+  try {
+    return parseINRToPaise(value) >= 0
+  } catch {
+    return false
+  }
+}
+
+const leadFormSchema = z.object({
+  companyId: z.string(),
+  companyName: z.string().trim().min(2, 'Company name is required').max(255),
+  contactName: z.string().max(255),
+  designation: z.string().max(100),
+  contactEmail: optionalEmail,
+  contactPhone: z.string().max(20),
+  inquiryEmail: optionalEmail,
+  ccEmails: z.string(),
+  city: z.string().max(100),
+  projectDescription: z.string().max(5000),
+  enquiryType: z.enum(LEAD_ENQUIRY_TYPES),
+  sourceCode: z.enum(LEAD_SOURCE_CODES),
+  stage: z.enum(LEAD_STAGES),
+  priority: z.enum(LEAD_PRIORITIES),
+  valueRupees: z.string().refine(isParseableAmount, 'Enter a valid amount'),
+  probability: z.string().refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) <= 100), '0–100 only'),
+  score: z.string().refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) <= 100), '0–100 only'),
+  enquiryDate: z.string(),
+  expectedCloseDate: z.string(),
+  lostReason: z.string().max(500),
+  assignedTo: z.string(),
+  notes: z.string().max(5000),
+})
+
+type LeadFormValues = z.infer<typeof leadFormSchema>
+
+function leadFormDefaults(lead: LeadListItem | null, defaultStage?: LeadStage): LeadFormValues {
+  const today = new Date().toISOString().slice(0, 10)
+  return {
+    companyId: lead?.companyId ?? '',
+    companyName: lead?.companyName ?? '',
+    contactName: lead?.contactName ?? '',
+    designation: lead?.designation ?? '',
+    contactEmail: lead?.contactEmail ?? '',
+    contactPhone: lead?.contactPhone ?? '',
+    inquiryEmail: lead?.inquiryEmail ?? '',
+    ccEmails: lead?.ccEmails.join(', ') ?? '',
+    city: lead?.city ?? '',
+    projectDescription: lead?.projectDescription ?? '',
+    enquiryType: oneOf(LEAD_ENQUIRY_TYPES, lead?.enquiryType ?? '', 'Email'),
+    sourceCode: lead?.sourceCode ?? 'website',
+    stage: lead?.stage ?? defaultStage ?? 'prospecting',
+    priority: lead?.priority ?? 'medium',
+    valueRupees: lead?.valuePaise != null ? String(paiseToRupeesNumber(lead.valuePaise)) : '',
+    probability: lead?.probability != null ? String(lead.probability) : '',
+    score: lead?.score != null ? String(lead.score) : '',
+    enquiryDate: lead?.enquiryDate ?? today,
+    expectedCloseDate: lead?.expectedCloseDate ?? '',
+    lostReason: lead?.lostReason ?? '',
+    assignedTo: lead?.assignedTo ?? '',
+    notes: lead?.notes ?? '',
+  }
+}
+
+/** Map validated form values to the server payload (`leadInputSchema` shape). */
+function toLeadPayload(values: LeadFormValues, companies: LeadsPagePayload['options']['companies']) {
+  const selectedCompany = values.companyId
+    ? companies.find((c) => c.id === values.companyId)
+    : undefined
+
+  return {
+    companyId: selectedCompany ? selectedCompany.id : null,
+    companyName: selectedCompany ? selectedCompany.name : values.companyName.trim(),
+    contactName: values.contactName.trim() || null,
+    contactEmail: values.contactEmail.trim() || null,
+    contactPhone: values.contactPhone.trim() || null,
+    designation: values.designation.trim() || null,
+    inquiryEmail: values.inquiryEmail.trim() || null,
+    ccEmails: values.ccEmails.split(',').map((s) => s.trim()).filter(Boolean),
+    city: values.city.trim() || null,
+    projectDescription: values.projectDescription.trim() || null,
+    enquiryType: values.enquiryType,
+    sourceCode: values.sourceCode,
+    stage: values.stage,
+    priority: values.priority,
+    valuePaise: values.valueRupees.trim() === '' ? null : parseINRToPaise(values.valueRupees),
+    probability: values.probability.trim() === '' ? null : Number(values.probability),
+    score: values.score.trim() === '' ? null : Number(values.score),
+    assignedTo: values.assignedTo || null,
+    enquiryDate: values.enquiryDate || null,
+    expectedCloseDate: values.expectedCloseDate || null,
+    lostReason: values.lostReason.trim() || null,
+    notes: values.notes.trim() || null,
+  }
+}
+
+function firstFieldError(errors: unknown[]): string | undefined {
+  for (const error of errors) {
+    if (typeof error === 'string') return error
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error as { message?: unknown }).message
+      if (typeof message === 'string' && message !== '') return message
+    }
+  }
+  return undefined
+}
+
+/** Input bound to a TanStack field; shows inline errors and aria-invalid. */
+function BoundInput({ field, ...props }: { field: AnyFieldApi } & ComponentProps<'input'>) {
+  const invalid = firstFieldError(field.state.meta.errors) !== undefined
+  return (
+    <>
+      <Input
+        {...props}
+        id={field.name}
+        name={field.name}
+        aria-invalid={invalid}
+        value={field.state.value}
+        onBlur={field.handleBlur}
+        onChange={(e) => void field.handleChange(e.target.value)}
+      />
+      <FieldErrorText field={field} />
+    </>
+  )
+}
+
+function BoundTextarea({ field, ...props }: { field: AnyFieldApi } & ComponentProps<'textarea'>) {
+  const invalid = firstFieldError(field.state.meta.errors) !== undefined
+  return (
+    <>
+      <Textarea
+        {...props}
+        id={field.name}
+        name={field.name}
+        aria-invalid={invalid}
+        value={field.state.value}
+        onBlur={field.handleBlur}
+        onChange={(e) => void field.handleChange(e.target.value)}
+      />
+      <FieldErrorText field={field} />
+    </>
+  )
+}
+
+function FieldErrorText({ field }: { field: AnyFieldApi }) {
+  const message = firstFieldError(field.state.meta.errors)
+  if (!message) return null
+  return <p className="text-xs font-medium text-destructive">{message}</p>
+}
+
+function SelectField({
+  field,
+  options,
+}: {
+  field: AnyFieldApi
+  options: readonly { value: string; label: string }[]
+}) {
+  return (
+    <select
+      id={field.name}
+      name={field.name}
+      className="input-base h-10"
+      value={field.state.value}
+      onBlur={field.handleBlur}
+      onChange={(e) => void field.handleChange(e.target.value as never)}
+      aria-invalid={firstFieldError(field.state.meta.errors) !== undefined}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function LeadFormSheet({
+  open,
   lead,
   defaultStage,
   options,
-  isSaving,
   onCancel,
   onSubmit,
 }: {
+  open: boolean
   lead: LeadListItem | null
   defaultStage?: LeadStage
   options: LeadsPagePayload['options']
-  isSaving: boolean
   onCancel: () => void
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void
+  onSubmit: (values: LeadFormValues) => Promise<void>
 }) {
+  const formApi = useForm({
+    defaultValues: leadFormDefaults(lead, defaultStage),
+    validators: {
+      onSubmit: leadFormSchema,
+      onChange: leadFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      await onSubmit(value)
+    },
+  })
+
+  const busy = formApi.state.isSubmitting || formApi.state.isValidating
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div className="card" style={{ width: '100%', maxWidth: 760, padding: '24px 28px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+    <Sheet open={open} onOpenChange={(next) => !next && !busy && onCancel()}>
+      <SheetContent
+        side="right"
+        className="flex flex-col gap-0 p-0 sm:max-w-xl"
+        onEscapeKeyDown={(e) => busy && e.preventDefault()}
+        onInteractOutside={(e) => busy && e.preventDefault()}
+      >
+        <SheetHeader className="border-b px-6 py-4">
+          <SheetTitle className="text-base">
             {lead ? `Edit Lead ${lead.leadNumber}` : 'New Lead'}
-          </h3>
-          <button type="button" className="btn-ghost" onClick={onCancel}>
-            <X size={16} />
-          </button>
-        </div>
+          </SheetTitle>
+          <SheetDescription>
+            {lead
+              ? `Review or amend the details for ${lead.companyName}.`
+              : 'Capture the enquiry, classify it, and route it to an owner.'}
+          </SheetDescription>
+        </SheetHeader>
 
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Company */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field>
-              <FieldLabel>Link to company master</FieldLabel>
-              <select name="companyId" defaultValue={lead?.companyId ?? ''} className="input-base" style={{ height: 40 }}>
-                <option value="">— Not linked (enter name below) —</option>
-                {options.companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.code} — {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel>Company name *</FieldLabel>
-              <Input name="companyName" defaultValue={lead?.companyName ?? ''} placeholder="e.g. NTPC Limited" required minLength={2} maxLength={255} />
-            </Field>
-          </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void formApi.handleSubmit()
+          }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {/* display:contents — fieldset[disabled] still disables all inputs, but the DIV does the scrolling (Chromium fieldset/flex bug) */}
+          <fieldset disabled={busy} className="contents">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <div className="space-y-5">
+            {/* Company */}
+            <FormSection title="Company">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <formApi.Field name="companyId">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Link to company master</FieldLabel>
+                      <SelectField
+                        field={field}
+                        options={[
+                          { value: '', label: '— Not linked (enter name below) —' },
+                          ...options.companies.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
+                        ]}
+                      />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field
+                  name="companyName"
+                  validators={{ onChange: z.string().trim().min(2, 'Company name is required').max(255) }}
+                >
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>
+                        Company name <span aria-hidden="true">*</span>
+                      </FieldLabel>
+                      <BoundInput field={field} placeholder="e.g. NTPC Limited" maxLength={255} autoFocus />
+                    </Field>
+                  )}
+                </formApi.Field>
+              </div>
+            </FormSection>
 
-          {/* Contact */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-            <Field>
-              <FieldLabel>Contact name</FieldLabel>
-              <Input name="contactName" defaultValue={lead?.contactName ?? ''} maxLength={255} />
-            </Field>
-            <Field>
-              <FieldLabel>Designation</FieldLabel>
-              <Input name="designation" defaultValue={lead?.designation ?? ''} maxLength={100} />
-            </Field>
-            <Field>
-              <FieldLabel>Contact email</FieldLabel>
-              <Input name="contactEmail" type="email" defaultValue={lead?.contactEmail ?? ''} maxLength={255} />
-            </Field>
-            <Field>
-              <FieldLabel>Phone</FieldLabel>
-              <Input name="contactPhone" defaultValue={lead?.contactPhone ?? ''} maxLength={20} />
-            </Field>
-          </div>
+            {/* Contact */}
+            <FormSection title="Contact">
+              <div className="grid grid-cols-2 gap-3">
+                <formApi.Field name="contactName" validators={{ onChange: leadFormSchema.shape.contactName }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Contact name</FieldLabel>
+                      <BoundInput field={field} maxLength={255} />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="designation" validators={{ onChange: leadFormSchema.shape.designation }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Designation</FieldLabel>
+                      <BoundInput field={field} maxLength={100} />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="contactEmail" validators={{ onChange: optionalEmail }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Contact email</FieldLabel>
+                      <BoundInput field={field} type="email" maxLength={255} />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="contactPhone" validators={{ onChange: leadFormSchema.shape.contactPhone }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Phone</FieldLabel>
+                      <BoundInput field={field} maxLength={20} />
+                    </Field>
+                  )}
+                </formApi.Field>
+              </div>
+            </FormSection>
 
-          {/* Inquiry capture */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <Field>
-              <FieldLabel>Inquiry email (who sent it)</FieldLabel>
-              <Input name="inquiryEmail" type="email" defaultValue={lead?.inquiryEmail ?? ''} maxLength={255} />
-            </Field>
-            <Field>
-              <FieldLabel>CC emails (comma-separated)</FieldLabel>
-              <Input name="ccEmails" defaultValue={lead?.ccEmails.join(', ') ?? ''} placeholder="a@x.com, b@y.com" />
-            </Field>
-            <Field>
-              <FieldLabel>City</FieldLabel>
-              <Input name="city" defaultValue={lead?.city ?? ''} maxLength={100} />
-            </Field>
-          </div>
+            {/* Inquiry capture */}
+            <FormSection title="Inquiry">
+              <div className="grid grid-cols-2 gap-3">
+                <formApi.Field name="inquiryEmail" validators={{ onChange: optionalEmail }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Inquiry email (who sent it)</FieldLabel>
+                      <BoundInput field={field} type="email" maxLength={255} />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="city" validators={{ onChange: leadFormSchema.shape.city }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>City</FieldLabel>
+                      <BoundInput field={field} maxLength={100} />
+                    </Field>
+                  )}
+                </formApi.Field>
+              </div>
+              <formApi.Field name="ccEmails">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>CC emails (comma-separated)</FieldLabel>
+                    <BoundInput field={field} placeholder="a@x.com, b@y.com" />
+                  </Field>
+                )}
+              </formApi.Field>
+              <formApi.Field name="projectDescription" validators={{ onChange: leadFormSchema.shape.projectDescription }}>
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Project description</FieldLabel>
+                    <BoundTextarea field={field} rows={2} maxLength={5000} className="resize-y" />
+                  </Field>
+                )}
+              </formApi.Field>
+            </FormSection>
 
-          <Field>
-            <FieldLabel>Project description</FieldLabel>
-            <textarea
-              name="projectDescription"
-              defaultValue={lead?.projectDescription ?? ''}
-              maxLength={5000}
-              rows={2}
-              className="input-base"
-              style={{ width: '100%', padding: '8px 12px', fontSize: 13, resize: 'vertical' }}
-            />
-          </Field>
+            {/* Classification */}
+            <FormSection title="Classification">
+              <div className="grid grid-cols-2 gap-3">
+                <formApi.Field name="enquiryType">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Enquiry type</FieldLabel>
+                      <SelectField
+                        field={field}
+                        options={LEAD_ENQUIRY_TYPES.map((t) => ({ value: t, label: t }))}
+                      />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="sourceCode">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Source</FieldLabel>
+                      <SelectField
+                        field={field}
+                        options={LEAD_SOURCE_CODES.map((code) => ({ value: code, label: LEAD_SOURCE_LABELS[code] }))}
+                      />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="stage">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Stage</FieldLabel>
+                      <SelectField
+                        field={field}
+                        options={LEAD_STAGES.map((stage) => ({ value: stage, label: LEAD_STAGE_LABELS[stage] }))}
+                      />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="priority">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Priority</FieldLabel>
+                      <SelectField
+                        field={field}
+                        options={LEAD_PRIORITIES.map((p) => ({ value: p, label: LEAD_PRIORITY_LABELS[p] }))}
+                      />
+                    </Field>
+                  )}
+                </formApi.Field>
+              </div>
+            </FormSection>
 
-          {/* Classification */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-            <Field>
-              <FieldLabel>Enquiry type</FieldLabel>
-              <select name="enquiryType" defaultValue={lead?.enquiryType ?? 'Email'} className="input-base" style={{ height: 40 }}>
-                {LEAD_ENQUIRY_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel>Source</FieldLabel>
-              <select name="sourceCode" defaultValue={lead?.sourceCode ?? 'website'} className="input-base" style={{ height: 40 }}>
-                {LEAD_SOURCE_CODES.map((code) => (
-                  <option key={code} value={code}>{LEAD_SOURCE_LABELS[code]}</option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel>Stage</FieldLabel>
-              <select name="stage" defaultValue={lead?.stage ?? defaultStage ?? 'prospecting'} className="input-base" style={{ height: 40 }}>
-                {LEAD_STAGES.map((stage) => (
-                  <option key={stage} value={stage}>{LEAD_STAGE_LABELS[stage]}</option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel>Priority</FieldLabel>
-              <select name="priority" defaultValue={lead?.priority ?? 'medium'} className="input-base" style={{ height: 40 }}>
-                {LEAD_PRIORITIES.map((p) => (
-                  <option key={p} value={p}>{LEAD_PRIORITY_LABELS[p]}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
+            {/* Deal */}
+            <FormSection title="Deal">
+              <div className="grid grid-cols-2 gap-3">
+                <formApi.Field name="valueRupees" validators={{ onChange: leadFormSchema.shape.valueRupees }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Deal value (₹)</FieldLabel>
+                      <BoundInput field={field} inputMode="decimal" placeholder="e.g. 2500000" />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="probability" validators={{ onChange: leadFormSchema.shape.probability }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Win probability %</FieldLabel>
+                      <BoundInput field={field} type="number" min={0} max={100} />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="score" validators={{ onChange: leadFormSchema.shape.score }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Lead score</FieldLabel>
+                      <BoundInput field={field} type="number" min={0} max={100} />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="enquiryDate">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Enquiry date</FieldLabel>
+                      <BoundInput field={field} type="date" />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="expectedCloseDate">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Expected close</FieldLabel>
+                      <BoundInput field={field} type="date" />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="lostReason" validators={{ onChange: leadFormSchema.shape.lostReason }}>
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Loss reason (if Closed Lost)</FieldLabel>
+                      <BoundInput field={field} maxLength={500} placeholder="e.g. Budget frozen, chose competitor" />
+                    </Field>
+                  )}
+                </formApi.Field>
+              </div>
+            </FormSection>
 
-          {/* Deal parameters */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 12 }}>
-            <Field>
-              <FieldLabel>Deal value (₹)</FieldLabel>
-              <Input
-                name="valueRupees"
-                inputMode="decimal"
-                defaultValue={lead?.valuePaise != null ? String(paiseToRupeesNumber(lead.valuePaise)) : ''}
-                placeholder="e.g. 2500000"
-              />
-            </Field>
-            <Field>
-              <FieldLabel>Win probability %</FieldLabel>
-              <Input name="probability" type="number" min={0} max={100} defaultValue={lead?.probability ?? ''} />
-            </Field>
-            <Field>
-              <FieldLabel>Lead score</FieldLabel>
-              <Input name="score" type="number" min={0} max={100} defaultValue={lead?.score ?? ''} />
-            </Field>
-            <Field>
-              <FieldLabel>Enquiry date</FieldLabel>
-              <Input name="enquiryDate" type="date" defaultValue={lead?.enquiryDate ?? new Date().toISOString().slice(0, 10)} />
-            </Field>
-            <Field>
-              <FieldLabel>Expected close</FieldLabel>
-              <Input name="expectedCloseDate" type="date" defaultValue={lead?.expectedCloseDate ?? ''} />
-            </Field>
-            <Field>
-              <FieldLabel>Loss reason (if Closed Lost)</FieldLabel>
-              <Input name="lostReason" defaultValue={lead?.lostReason ?? ''} maxLength={500} placeholder="e.g. Budget frozen, chose competitor" />
-            </Field>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-            <Field>
-              <FieldLabel>Assignee</FieldLabel>
-              <select name="assignedTo" defaultValue={lead?.assignedTo ?? ''} className="input-base" style={{ height: 40 }}>
-                <option value="">Unassigned</option>
-                {options.employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {[emp.firstName, emp.lastName].filter(Boolean).join(' ')}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel>Notes</FieldLabel>
-              <Input name="notes" defaultValue={lead?.notes ?? ''} maxLength={5000} />
-            </Field>
-          </div>
+            {/* Ownership */}
+            <FormSection title="Ownership">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <formApi.Field name="assignedTo">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
+                      <SelectField
+                        field={field}
+                        options={[
+                          { value: '', label: 'Unassigned' },
+                          ...options.employees.map((emp) => ({
+                            value: emp.id,
+                            label: [emp.firstName, emp.lastName].filter(Boolean).join(' '),
+                          })),
+                        ]}
+                      />
+                    </Field>
+                  )}
+                </formApi.Field>
+                <formApi.Field name="notes" validators={{ onChange: leadFormSchema.shape.notes }}>
+                  {(field) => (
+                    <Field className="col-span-2">
+                      <FieldLabel htmlFor={field.name}>Notes</FieldLabel>
+                      <BoundInput field={field} maxLength={5000} />
+                    </Field>
+                  )}
+                </formApi.Field>
+              </div>
+            </FormSection>
+            </div>
+            </div>
+          </fieldset>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-            <button type="button" className="btn-secondary" onClick={onCancel}>
+          <SheetFooter className="flex-row items-center justify-end gap-2 border-t bg-background px-6 py-3.5">
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
-            </button>
-            <Button type="submit" disabled={isSaving} className="bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary-hover)]">
-              {isSaving ? 'Saving…' : lead ? 'Update Lead' : 'Create Lead'}
             </Button>
-          </div>
+            <formApi.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+              {([canSubmit, submitting]) => (
+                <Button type="submit" disabled={!canSubmit}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="animate-spin" /> Saving…
+                    </>
+                  ) : lead ? (
+                    'Update Lead'
+                  ) : (
+                    'Create Lead'
+                  )}
+                </Button>
+              )}
+            </formApi.Subscribe>
+          </SheetFooter>
         </form>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   )
 }
