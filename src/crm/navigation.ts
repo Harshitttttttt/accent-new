@@ -6,6 +6,7 @@ export function pageFromPath(pathname: string): string {
   if (pathname.startsWith('/projects/')) return 'project-detail'
   if (pathname === '/leads') return 'leads'
   if (pathname === '/proposals') return 'proposals'
+  if (pathname.startsWith('/proposals/')) return 'proposals'
   if (pathname === '/finance') return 'financial-dashboard'
   if (pathname === '/masters/users') return 'user-master'
   if (pathname.startsWith('/masters/')) {

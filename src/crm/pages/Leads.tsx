@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from '
 import {
   AlertCircle,
   CheckCircle2,
+  FileText,
   IndianRupee,
   LayoutGrid,
   List,
@@ -15,6 +16,20 @@ import {
   X,
 } from 'lucide-react'
 import { useHotkey } from '@tanstack/react-hotkeys'
+import { useNavigate } from '@tanstack/react-router'
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCorners,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
 import { useForm, type AnyFieldApi } from '@tanstack/react-form'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
@@ -36,7 +51,9 @@ import {
   updateLeadAction,
   updateLeadStageAction,
 } from '~/lib/leads.functions'
+import { convertLeadToProposalAction } from '~/lib/proposals.functions'
 import {
+  computeLeadStats,
   LEAD_ENQUIRY_TYPES,
   LEAD_PRIORITIES,
   LEAD_PRIORITY_LABELS,
@@ -95,7 +112,7 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
   const [assigneeFilter, setAssigneeFilter] = useState<string>('all')
   const [sort, setSort] = useState<SortMode>('newest')
   const [listPage, setListPage] = useState(1)
-  const [dragging, setDragging] = useState<string | null>(null)
+  const [activeLeadId, setActiveLeadId] = useState<string | null>(null)
   const [form, setForm] = useState<LeadFormState>({ lead: null, open: false })
   const [deleteTarget, setDeleteTarget] = useState<LeadListItem | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -164,6 +181,7 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
   const listTotalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safeListPage = Math.min(listPage, listTotalPages)
   const listRows = filtered.slice((safeListPage - 1) * PAGE_SIZE, safeListPage * PAGE_SIZE)
+  const activeLead = activeLeadId ? (data.leads.find((l) => l.id === activeLeadId) ?? null) : null
 
   function resetFilters() {
     setSearch('')
@@ -173,26 +191,58 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
     setListPage(1)
   }
 
-  // ── Stage move (kanban drag & drop) ────────────────────────────────────
-  async function handleDrop(stage: LeadStage) {
-    const id = dragging
-    setDragging(null)
-    if (!id) return
-    const lead = data.leads.find((l) => l.id === id)
-    if (!lead || lead.stage === stage) return
+  // ── Stage move (kanban drag & drop via dnd-kit) ────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor),
+  )
+
+  async function moveLeadToStage(lead: LeadListItem, stage: LeadStage) {
+    if (lead.stage === stage) return
 
     // Optimistic move; revert via reload when the mutation fails.
     setData((prev) => ({
       ...prev,
-      leads: prev.leads.map((l) => (l.id === id ? { ...l, stage } : l)),
+      leads: prev.leads.map((l) => (l.id === lead.id ? { ...l, stage } : l)),
     }))
-    const res = await updateLeadStageAction({ data: { id, stage } })
+    const res = await updateLeadStageAction({ data: { id: lead.id, stage } })
     if (!res.ok) {
       showFeedback('error', res.message)
       await load()
       return
     }
     showFeedback('success', `${lead.leadNumber} moved to ${LEAD_STAGE_LABELS[stage]}.`)
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveLeadId(String(event.active.id))
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveLeadId(null)
+    const lead = data.leads.find((l) => l.id === active.id)
+    if (!lead || !over) return
+    const stage = oneOf(LEAD_STAGES, String(over.id), lead.stage)
+    void moveLeadToStage(lead, stage)
+  }
+
+  // ── Convert to proposal ─────────────────────────────────────────────────
+  const navigate = useNavigate()
+  const [convertingLeadId, setConvertingLeadId] = useState<string | null>(null)
+
+  async function handleConvertLead(lead: LeadListItem) {
+    setConvertingLeadId(lead.id)
+    try {
+      const res = await convertLeadToProposalAction({ data: { leadId: lead.id } })
+      if (!res.ok) throw new Error(res.message)
+      showFeedback('success', `${lead.leadNumber} converted to proposal ${res.data.proposalNumber}.`)
+      setForm({ lead: null, open: false })
+      await navigate({ to: '/proposals/$proposalId', params: { proposalId: res.data.id } })
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Conversion failed.')
+    } finally {
+      setConvertingLeadId(null)
+    }
   }
 
   // ── Create / edit / delete ─────────────────────────────────────────────
@@ -247,7 +297,9 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
     )
   }
 
-  const { stats } = data
+  // Live rollup — recomputed from the (optimistically updated) leads list so
+  // the KPI bar tracks kanban moves instantly; server stats arrive on load().
+  const stats = useMemo(() => computeLeadStats(data.leads), [data.leads])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -426,26 +478,28 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
             ))}
           </div>
 
-          {/* Kanban board */}
-          <div
-            style={{
-              flex: 1,
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              padding: '20px 24px',
-              display: 'flex',
-              gap: 14,
-            }}
+          {/* Kanban board — dnd-kit: pointer/touch dragging + edge auto-scroll */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => setActiveLeadId(null)}
           >
+            <div
+              style={{
+                flex: 1,
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                padding: '20px 24px',
+                display: 'flex',
+                gap: 14,
+              }}
+            >
             {LEAD_STAGES.map((stage) => {
               const stageLeads = byStage[stage]
               return (
-                <div
-                  key={stage}
-                  className="kanban-col"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => void handleDrop(stage)}
-                >
+                <StageDropZone stage={stage}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <div style={{ width: 10, height: 10, borderRadius: 2, background: STAGE_COLORS[stage] }} />
@@ -478,95 +532,7 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {stageLeads.map((lead) => (
-                      <div
-                        key={lead.id}
-                        className="kanban-card"
-                        draggable
-                        onDragStart={() => setDragging(lead.id)}
-                        onDragEnd={() => setDragging(null)}
-                        style={{ opacity: dragging === lead.id ? 0.5 : 1, cursor: 'grab' }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
-                              {lead.companyName}
-                            </div>
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                              {lead.contactName ?? 'No contact'}
-                            </div>
-                          </div>
-                          <span style={{ fontSize: 9.5, color: 'var(--text-muted)', fontWeight: 600 }}>{lead.leadNumber}</span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-                          <IndianRupee size={12} style={{ color: 'var(--brand-primary)' }} />
-                          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--brand-primary)' }}>
-                            {lead.valuePaise === null ? '—' : formatPaise(lead.valuePaise, { decimals: 0 })}
-                          </span>
-                        </div>
-
-                        {(lead.score !== null || lead.probability !== null) && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            {lead.score !== null ? (
-                              <div>
-                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Lead Score</div>
-                                <ScoreBar score={lead.score} />
-                              </div>
-                            ) : <span />}
-                            {lead.probability !== null && (
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Win Prob.</div>
-                                <div
-                                  style={{
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                    color:
-                                      lead.probability >= 70
-                                        ? 'var(--success)'
-                                        : lead.probability >= 40
-                                          ? 'var(--warning)'
-                                          : 'var(--text-secondary)',
-                                  }}
-                                >
-                                  {lead.probability}%
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            paddingTop: 8,
-                            borderTop: '1px solid var(--border-subtle)',
-                          }}
-                        >
-                          <div
-                            className="avatar"
-                            title={lead.assigneeName ?? 'Unassigned'}
-                            style={{
-                              background: lead.assigneeName ? 'var(--brand-primary)' : 'var(--border)',
-                              width: 22,
-                              height: 22,
-                              fontSize: 9,
-                            }}
-                          >
-                            {lead.assigneeName ? initials(lead.assigneeName) : '?'}
-                          </div>
-                          <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
-                            {formatDate(lead.lastActivityAt)}
-                          </span>
-                          <span
-                            className={`badge ${lead.sourceCode === 'referral' || lead.sourceCode === 'existing_client' ? 'badge-purple' : lead.sourceCode === 'tender_portal' ? 'badge-cyan' : 'badge-neutral'}`}
-                            style={{ fontSize: 9 }}
-                          >
-                            {LEAD_SOURCE_LABELS[lead.sourceCode]}
-                          </span>
-                        </div>
-                      </div>
+                      <DraggableLeadCard key={lead.id} lead={lead} />
                     ))}
                   </div>
 
@@ -584,10 +550,22 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
                       Drop leads here
                     </div>
                   )}
-                </div>
+                </StageDropZone>
               )
             })}
-          </div>
+            </div>
+
+            {activeLead && (
+              <DragOverlay>
+                <div
+                  className="kanban-card"
+                  style={{ cursor: 'grabbing', boxShadow: '0 16px 32px rgba(0,0,0,0.28)' }}
+                >
+                  <LeadCardBody lead={activeLead} />
+                </div>
+              </DragOverlay>
+            )}
+          </DndContext>
         </>
       ) : (
         /* ── List view ── */
@@ -686,6 +664,16 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
                           type="button"
                           className="btn-ghost"
                           style={{ padding: '5px 8px' }}
+                          title="Convert to proposal"
+                          disabled={convertingLeadId !== null}
+                          onClick={() => void handleConvertLead(lead)}
+                        >
+                          {convertingLeadId === lead.id ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          style={{ padding: '5px 8px' }}
                           title="Edit lead"
                           onClick={() => setForm({ lead, open: true })}
                         >
@@ -748,6 +736,8 @@ export default function Leads({ initialData }: { initialData: LeadsPagePayload }
         lead={form.lead}
         defaultStage={form.stage}
         options={data.options}
+        isConverting={form.lead ? convertingLeadId === form.lead.id : false}
+        onConvert={form.lead ? () => void handleConvertLead(form.lead!) : undefined}
         onCancel={() => setForm({ lead: null, open: false })}
         onSubmit={handleSaveLead}
       />
@@ -819,6 +809,131 @@ function ScoreBar({ score }: { score: number }) {
         <div style={{ width: `${score}%`, height: '100%', background: color }} />
       </div>
       <span style={{ fontSize: 10.5, fontWeight: 700, color }}>{score}</span>
+    </div>
+  )
+}
+
+/** Visual content of a kanban lead card — shared by the board and the drag overlay. */
+function LeadCardBody({ lead }: { lead: LeadListItem }) {
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
+            {lead.companyName}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+            {lead.contactName ?? 'No contact'}
+          </div>
+        </div>
+        <span style={{ fontSize: 9.5, color: 'var(--text-muted)', fontWeight: 600 }}>{lead.leadNumber}</span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+        <IndianRupee size={12} style={{ color: 'var(--brand-primary)' }} />
+        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--brand-primary)' }}>
+          {lead.valuePaise === null ? '—' : formatPaise(lead.valuePaise, { decimals: 0 })}
+        </span>
+      </div>
+
+      {(lead.score !== null || lead.probability !== null) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          {lead.score !== null ? (
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Lead Score</div>
+              <ScoreBar score={lead.score} />
+            </div>
+          ) : <span />}
+          {lead.probability !== null && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Win Prob.</div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color:
+                    lead.probability >= 70
+                      ? 'var(--success)'
+                      : lead.probability >= 40
+                        ? 'var(--warning)'
+                        : 'var(--text-secondary)',
+                }}
+              >
+                {lead.probability}%
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingTop: 8,
+          borderTop: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div
+          className="avatar"
+          title={lead.assigneeName ?? 'Unassigned'}
+          style={{
+            background: lead.assigneeName ? 'var(--brand-primary)' : 'var(--border)',
+            width: 22,
+            height: 22,
+            fontSize: 9,
+          }}
+        >
+          {lead.assigneeName ? initials(lead.assigneeName) : '?'}
+        </div>
+        <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+          {formatDate(lead.lastActivityAt)}
+        </span>
+        <span
+          className={`badge ${lead.sourceCode === 'referral' || lead.sourceCode === 'existing_client' ? 'badge-purple' : lead.sourceCode === 'tender_portal' ? 'badge-cyan' : 'badge-neutral'}`}
+          style={{ fontSize: 9 }}
+        >
+          {LEAD_SOURCE_LABELS[lead.sourceCode]}
+        </span>
+      </div>
+    </>
+  )
+}
+
+function DraggableLeadCard({ lead }: { lead: LeadListItem }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id })
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className="kanban-card"
+      style={{
+        opacity: isDragging ? 0.35 : 1,
+        cursor: 'grab',
+        touchAction: 'none',
+      }}
+    >
+      <LeadCardBody lead={lead} />
+    </div>
+  )
+}
+
+/** Whole-column drop target; rings with brand color while a card hovers over it. */
+function StageDropZone({ stage, children, ...rest }: { stage: LeadStage } & ComponentProps<'div'>) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage })
+  return (
+    <div
+      ref={setNodeRef}
+      {...rest}
+      className="kanban-col"
+      style={{
+        ...rest.style,
+        boxShadow: isOver ? 'inset 0 0 0 2px var(--brand-primary)' : rest.style?.boxShadow,
+      }}
+    >
+      {children}
     </div>
   )
 }
@@ -1019,6 +1134,8 @@ function LeadFormSheet({
   lead,
   defaultStage,
   options,
+  isConverting,
+  onConvert,
   onCancel,
   onSubmit,
 }: {
@@ -1026,6 +1143,8 @@ function LeadFormSheet({
   lead: LeadListItem | null
   defaultStage?: LeadStage
   options: LeadsPagePayload['options']
+  isConverting: boolean
+  onConvert?: () => void
   onCancel: () => void
   onSubmit: (values: LeadFormValues) => Promise<void>
 }) {
@@ -1075,7 +1194,15 @@ function LeadFormSheet({
             {/* Company */}
             <FormSection title="Company">
               <div className="grid gap-3 sm:grid-cols-2">
-                <formApi.Field name="companyId">
+                <formApi.Field
+                  name="companyId"
+                  listeners={{
+                    onChange: ({ value }) => {
+                      const company = options.companies.find((c) => c.id === value)
+                      if (company) formApi.setFieldValue('companyName', company.name)
+                    },
+                  }}
+                >
                   {(field) => (
                     <Field>
                       <FieldLabel htmlFor={field.name}>Link to company master</FieldLabel>
@@ -1319,25 +1446,40 @@ function LeadFormSheet({
             </div>
           </fieldset>
 
-          <SheetFooter className="flex-row items-center justify-end gap-2 border-t bg-background px-6 py-3.5">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <formApi.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-              {([canSubmit, submitting]) => (
-                <Button type="submit" disabled={!canSubmit}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="animate-spin" /> Saving…
-                    </>
-                  ) : lead ? (
-                    'Update Lead'
-                  ) : (
-                    'Create Lead'
-                  )}
-                </Button>
-              )}
-            </formApi.Subscribe>
+          <SheetFooter className="flex-row items-center justify-between gap-2 border-t bg-background px-6 py-3.5">
+            {lead && onConvert ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy || isConverting}
+                onClick={onConvert}
+                className="text-[var(--brand-primary)]"
+              >
+                {isConverting ? <Loader2 className="animate-spin" /> : <FileText />} Convert to Proposal
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <formApi.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+                {([canSubmit, submitting]) => (
+                  <Button type="submit" disabled={!canSubmit}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="animate-spin" /> Saving…
+                      </>
+                    ) : lead ? (
+                      'Update Lead'
+                    ) : (
+                      'Create Lead'
+                    )}
+                  </Button>
+                )}
+              </formApi.Subscribe>
+            </div>
           </SheetFooter>
         </form>
       </SheetContent>

@@ -1,18 +1,16 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import ProjectDetail from '~/crm/pages/ProjectDetail'
-import { useCrmNavigation } from '~/crm/navigation'
-import { getProjectSnapshot } from '~/lib/crm.functions'
+import { createFileRoute } from '@tanstack/react-router'
+import ProjectDetailPage from '~/crm/pages/ProjectDetail'
+import { getProjectDetailData } from '~/lib/projects.functions'
 
 export const Route = createFileRoute('/projects/$projectId')({
   ssr: true,
-  loader: ({ params }) =>
-    getProjectSnapshot({ data: { id: params.projectId } }),
+  loader: ({ params }) => getProjectDetailData({ data: { id: params.projectId } }),
   head: ({ loaderData }) => ({
     meta: [
       {
-        title: loaderData
-          ? `${loaderData.name} | AccentCRM`
-          : 'Project Detail | AccentCRM',
+        title: loaderData?.project
+          ? `${loaderData.project.projectNumber} ${loaderData.project.name} | AccentCRM`
+          : 'Project | AccentCRM',
       },
     ],
   }),
@@ -20,34 +18,10 @@ export const Route = createFileRoute('/projects/$projectId')({
 })
 
 function ProjectDetailRoute() {
-  const navigate = useCrmNavigation()
-  const project = Route.useLoaderData()
-
-  if (!project) {
-    return (
-      <div className="grid h-full place-items-center bg-[var(--bg)] p-8 text-center">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--brand-primary)]">
-            Project not found
-          </p>
-          <h1 className="m-0 text-2xl font-semibold text-[var(--text-primary)]">
-            That project is not in the workspace.
-          </h1>
-          <Link className="btn-secondary mt-5" to="/projects">
-            Back to projects
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
+  const initialData = Route.useLoaderData()
   return (
-    <div
-      className="h-full"
-      data-route="project-detail"
-      data-project-id={project.id}
-    >
-      <ProjectDetail onNavigate={navigate} />
+    <div className="h-full" data-route="project-detail">
+      <ProjectDetailPage initialData={initialData} />
     </div>
   )
 }

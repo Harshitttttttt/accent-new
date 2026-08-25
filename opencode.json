@@ -1,6 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
+    "timeout": {
+      "startup": 60000
+    },
     "servers": {
       "Neon": {
         "type": "remote",
@@ -20,7 +23,7 @@
       },
       "shadcn": {
         "type": "local",
-        "command": ["pnpm", "dlx", "shadcn@latest", "mcp"]
+        "command": ["pnpm", "exec", "shadcn", "mcp"]
       },
       "cloudflare": {
         "type": "remote",

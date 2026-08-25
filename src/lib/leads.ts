@@ -127,6 +127,33 @@ export const EMPTY_LEAD_STATS: LeadStats = {
   ) as LeadStats['byStage'],
 }
 
+/**
+ * Client-side mirror of `getLeadStats()` (leads.server.ts) — rolls KPIs up from
+ * a leads list so the UI reacts instantly to optimistic kanban moves without a
+ * refetch. Keep the open/won rules in sync with the SQL version.
+ */
+export function computeLeadStats(
+  leads: readonly { stage: LeadStage; valuePaise: number | null }[],
+): LeadStats {
+  const stats: LeadStats = {
+    totalLeads: leads.length,
+    openPipelinePaise: 0,
+    wonValuePaise: 0,
+    byStage: Object.fromEntries(
+      LEAD_STAGES.map((stage) => [stage, { count: 0, valuePaise: 0 }]),
+    ) as LeadStats['byStage'],
+  }
+  for (const lead of leads) {
+    const valuePaise = lead.valuePaise ?? 0
+    const bucket = stats.byStage[lead.stage]
+    bucket.count += 1
+    bucket.valuePaise += valuePaise
+    if (OPEN_LEAD_STAGES.includes(lead.stage)) stats.openPipelinePaise += valuePaise
+    if (lead.stage === 'closed_won') stats.wonValuePaise += valuePaise
+  }
+  return stats
+}
+
 export const EMPTY_LEADS_PAGE: LeadsPagePayload = {
   authorized: false,
   leads: [],

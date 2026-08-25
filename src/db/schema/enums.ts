@@ -49,3 +49,33 @@ export const leadEnquiryTypeEnum = pgEnum('lead_enquiry_type', [
   'Tender',
   'Other',
 ])
+
+export const proposalStatusEnum = pgEnum('proposal_status', [
+  'draft',
+  'internal_review',
+  'sent',
+  'negotiation',
+  'accepted',
+  'rejected',
+  'cancelled',
+])
+
+export const proposalContractTypeEnum = pgEnum('proposal_contract_type', [
+  'lumpsum',
+  'manhours_basis',
+  'line_wise',
+])
+
+export const projectLifecycleEnum = pgEnum('project_lifecycle', [
+  'planning',
+  'in_progress',
+  'on_hold',
+  'completed',
+  'cancelled',
+])
+
+export const milestoneStatusEnum = pgEnum('milestone_status', ['pending', 'in_progress', 'done'])
+
+export const riskSeverityEnum = pgEnum('risk_severity', ['low', 'medium', 'high'])
+
+export const riskStatusEnum = pgEnum('risk_status', ['open', 'mitigated', 'closed'])

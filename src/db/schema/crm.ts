@@ -5,7 +5,7 @@ import { companiesTable } from './masters/company'
 import { employeesTable } from './employees'
 import { usersTable } from './auth'
 
-export const projectsTable = pgTable('crm_projects', {
+export const crmProjectsTable = pgTable('crm_projects', {
   id: varchar('id', { length: 80 }).primaryKey(),
   name: varchar('name', { length: 160 }).notNull(),
   status: projectStatus('status').notNull().default('active'),
@@ -27,8 +27,8 @@ export const leadSourcesTable = pgTable('lead_sources', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export type ProjectRecord = typeof projectsTable.$inferSelect
-export type NewProjectRecord = typeof projectsTable.$inferInsert
+export type CrmProjectRecord = typeof crmProjectsTable.$inferSelect
+export type NewCrmProjectRecord = typeof crmProjectsTable.$inferInsert
 export type ActivityRecord = typeof activitiesTable.$inferSelect
 export type NewActivityRecord = typeof activitiesTable.$inferInsert
 export type LeadSourceRecord = typeof leadSourcesTable.$inferSelect

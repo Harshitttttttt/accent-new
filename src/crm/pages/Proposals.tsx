@@ -1,124 +1,318 @@
-import { useState } from 'react'
-import { Plus, Search, FileText } from 'lucide-react'
-import { PROPOSALS } from '../data/mock'
+import { useMemo, useState } from 'react'
+import { AlertCircle, CheckCircle2, FileText, Loader2, Pencil, Plus, Search, X } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { Button } from '~/components/ui/button'
+import {
+  computeProposalStats,
+  PROPOSAL_CONTRACT_TYPE_LABELS,
+  PROPOSAL_STATUSES,
+  PROPOSAL_STATUS_BADGES,
+  PROPOSAL_STATUS_LABELS,
+  type ProposalListItem,
+  type ProposalStatus,
+  type ProposalsPagePayload,
+} from '~/lib/proposals'
+import { createProposalAction } from '~/lib/proposals.functions'
+import { formatINRCompact, formatPaise } from '~/lib/money'
 
-const STATUS_BADGE: Record<string, string> = {
-  Draft: 'badge-neutral',
-  Submitted: 'badge-info',
-  Negotiation: 'badge-warning',
-  Won: 'badge-success',
-  Lost: 'badge-danger',
+const STATUS_COLORS: Record<ProposalStatus, string> = {
+  draft: 'var(--text-muted)',
+  internal_review: 'var(--info)',
+  sent: 'var(--brand-steel)',
+  negotiation: 'var(--warning)',
+  accepted: 'var(--success)',
+  rejected: 'var(--danger)',
+  cancelled: 'var(--border)',
 }
 
-function fmt(n: number) {
-  if (n >= 1000000) return `AED ${(n / 1000000).toFixed(2)}M`
-  if (n >= 1000) return `AED ${(n / 1000).toFixed(0)}K`
-  return `AED ${n}`
+function formatDate(value: string | null): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export default function Proposals() {
+export default function ProposalsPage({ initialData }: { initialData: ProposalsPagePayload }) {
+  const navigate = useNavigate()
+  const [data, setData] = useState<ProposalsPagePayload>(initialData)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all')
+  const [isCreating, setIsCreating] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  const statuses = ['All', 'Draft', 'Submitted', 'Negotiation', 'Won', 'Lost']
-  const filtered = PROPOSALS.filter(p =>
-    (statusFilter === 'All' || p.status === statusFilter) &&
-    (p.title.toLowerCase().includes(search.toLowerCase()) || p.client.toLowerCase().includes(search.toLowerCase()))
-  )
+  const stats = useMemo(() => computeProposalStats(data.proposals), [data.proposals])
 
-  const totalValue = PROPOSALS.reduce((s, p) => s + p.value, 0)
-  const avgMargin = Math.round(PROPOSALS.reduce((s, p) => s + p.margin, 0) / PROPOSALS.length)
+  function showFeedback(type: 'success' | 'error', message: string) {
+    setFeedback({ type, message })
+    setTimeout(() => setFeedback(null), 4000)
+  }
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return data.proposals.filter((p) => {
+      const matchesSearch =
+        !q ||
+        p.proposalNumber.toLowerCase().includes(q) ||
+        p.title.toLowerCase().includes(q) ||
+        p.companyName.toLowerCase().includes(q) ||
+        (p.leadNumber ?? '').toLowerCase().includes(q)
+      const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [data.proposals, search, statusFilter])
+
+  async function handleCreate() {
+    setIsCreating(true)
+    try {
+      const res = await createProposalAction()
+      if (!res.ok) throw new Error(res.message)
+      showFeedback('success', `Proposal ${res.data.proposalNumber} created.`)
+      await navigate({ to: '/proposals/$proposalId', params: { proposalId: res.data.id } })
+    } catch (err) {
+      showFeedback('error', err instanceof Error ? err.message : 'Failed to create proposal.')
+      setIsCreating(false)
+    }
+  }
+
+  // ── Unauthorized state ─────────────────────────────────────────────────
+  if (!data.authorized) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div className="card" style={{ padding: 32, textAlign: 'center', maxWidth: 420 }}>
+          <AlertCircle size={28} style={{ color: 'var(--warning)', margin: '0 auto 12px' }} />
+          <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700 }}>Sign in required</h3>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+            You need the <strong>proposals.read</strong> permission to view proposals. Ask an
+            administrator to grant access, or sign in with an authorized account.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Header */}
       <div className="page-header">
         <div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Proposals</h2>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-            {PROPOSALS.length} proposals · {fmt(totalValue)} total value · {avgMargin}% avg margin
+            {stats.totalProposals} proposals · {formatINRCompact(stats.openValuePaise, { fromPaise: true })} open ·{' '}
+            {formatINRCompact(stats.acceptedValuePaise, { fromPaise: true })} accepted
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface-secondary)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'var(--surface-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '7px 12px',
+            }}
+          >
             <Search size={14} style={{ color: 'var(--text-muted)' }} />
-            <input style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 13 }}
-              placeholder="Search proposals..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input
+              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: 13, width: 180 }}
+              placeholder="Search proposals..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button type="button" className="btn-ghost" style={{ padding: 0 }} onClick={() => setSearch('')}>
+                <X size={12} />
+              </button>
+            )}
           </div>
-          <button type="button" className="btn-primary"><Plus size={14} /> New Proposal</button>
+          <button type="button" className="btn-primary" onClick={() => void handleCreate()} disabled={isCreating}>
+            {isCreating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} New Proposal
+          </button>
         </div>
       </div>
 
-      {/* KPI row */}
-      <div style={{ padding: '16px 28px', borderBottom: '1px solid var(--border)', background: 'var(--surface-secondary)', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, flexShrink: 0 }}>
-        {statuses.filter(s => s !== 'All').map(status => {
-          const count = PROPOSALS.filter(p => p.status === status).length
-          const val = PROPOSALS.filter(p => p.status === status).reduce((s, p) => s + p.value, 0)
+      {/* Status KPI tiles — clickable filters */}
+      <div
+        style={{
+          padding: '14px 24px',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--surface)',
+          display: 'flex',
+          gap: 12,
+          flexShrink: 0,
+          overflowX: 'auto',
+        }}
+      >
+        {PROPOSAL_STATUSES.map((status) => {
+          const bucket = stats.byStatus[status]
+          const active = statusFilter === status
           return (
-            <div key={status} className="card" style={{ padding: '12px 14px', cursor: 'pointer', border: statusFilter === status ? '1.5px solid var(--brand-primary)' : undefined }}
-              onClick={() => setStatusFilter(s => s === status ? 'All' : status)}>
+            <button
+              key={status}
+              type="button"
+              className="card"
+              onClick={() => setStatusFilter((s) => (s === status ? 'all' : status))}
+              style={{
+                padding: '10px 14px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                minWidth: 150,
+                flexShrink: 0,
+                outline: active ? '2px solid var(--brand-primary)' : undefined,
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span className={`badge ${STATUS_BADGE[status]}`} style={{ fontSize: 10 }}>{status}</span>
-                <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>{count}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: STATUS_COLORS[status] }}>
+                  {PROPOSAL_STATUS_LABELS[status]}
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)' }}>{bucket.count}</span>
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{fmt(val)}</div>
-            </div>
+              <div style={{ fontSize: 14, fontWeight: 800 }}>
+                {bucket.valuePaise === 0 ? '—' : formatINRCompact(bucket.valuePaise, { fromPaise: true })}
+              </div>
+            </button>
           )
         })}
       </div>
 
-      {/* Status filter tabs */}
-      <div style={{ padding: '0 28px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', gap: 0, flexShrink: 0 }}>
-        <div className="tab-nav" style={{ borderBottom: 'none' }}>
-          {statuses.map(s => (
-            <button type="button" key={s} className={`tab-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>{s}</button>
-          ))}
+      {/* Table */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+        <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>
+              <FileText size={24} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
+              <p style={{ margin: '0 0 4px', fontSize: 13.5, fontWeight: 700 }}>No proposals found</p>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>
+                Convert a lead from the pipeline, or create one with “New Proposal”.
+              </p>
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-secondary)' }}>
+                  {['Proposal #', 'Title & Company', 'Type', 'Status', 'Value', 'Due', 'Lead', 'Created', ''].map(
+                    (heading, i) => (
+                      <th
+                        key={i}
+                        style={{
+                          textAlign: 'left',
+                          padding: '10px 12px',
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.4,
+                        }}
+                      >
+                        {heading}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((proposal) => (
+                  <ProposalRow key={proposal.id} proposal={proposal} onOpen={() =>
+                    void navigate({ to: '/proposals/$proposalId', params: { proposalId: proposal.id } })
+                  } />
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 28 }}>
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Proposal Title</th>
-                <th>Client</th>
-                <th>Value</th>
-                <th>Margin</th>
-                <th>Status</th>
-                <th>Assigned To</th>
-                <th>Submitted</th>
-                <th>Expected Close</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => (
-                <tr key={p.id} style={{ cursor: 'pointer' }}>
-                  <td><span style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--brand-primary)', fontWeight: 600 }}>{p.id}</span></td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <FileText size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600, fontSize: 13 }}>{p.title}</span>
-                    </div>
-                  </td>
-                  <td style={{ fontSize: 13 }}>{p.client}</td>
-                  <td style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--brand-primary)' }}>{fmt(p.value)}</td>
-                  <td>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: p.margin >= 40 ? 'var(--success)' : p.margin >= 25 ? 'var(--text-primary)' : 'var(--warning)' }}>
-                      {p.margin}%
-                    </span>
-                  </td>
-                  <td><span className={`badge ${STATUS_BADGE[p.status]}`} style={{ fontSize: 11 }}>{p.status}</span></td>
-                  <td style={{ fontSize: 13 }}>{p.assignee}</td>
-                  <td style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{p.submittedDate ?? '—'}</td>
-                  <td style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{p.expectedClose}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Feedback toast */}
+      {feedback && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            right: 20,
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'var(--surface)',
+            border: `1px solid ${feedback.type === 'success' ? 'var(--success)' : 'var(--danger)'}`,
+            borderRadius: 10,
+            padding: '10px 16px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          {feedback.type === 'success' ? (
+            <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
+          ) : (
+            <AlertCircle size={15} style={{ color: 'var(--danger)' }} />
+          )}
+          {feedback.message}
         </div>
-      </div>
+      )}
     </div>
+  )
+}
+
+function ProposalRow({ proposal, onOpen }: { proposal: ProposalListItem; onOpen: () => void }) {
+  const navigate = useNavigate()
+  return (
+    <tr
+      style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}
+      onClick={onOpen}
+    >
+      <td style={{ padding: '10px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>{proposal.proposalNumber}</td>
+      <td style={{ padding: '10px 12px' }}>
+        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{proposal.title}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{proposal.companyName}</div>
+      </td>
+      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
+        {PROPOSAL_CONTRACT_TYPE_LABELS[proposal.contractType]}
+      </td>
+      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+        <span className={`badge ${PROPOSAL_STATUS_BADGES[proposal.status]}`} style={{ fontSize: 9.5 }}>
+          {PROPOSAL_STATUS_LABELS[proposal.status]}
+        </span>
+      </td>
+      <td style={{ padding: '10px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+        {proposal.valuePaise === null ? '—' : formatPaise(proposal.valuePaise, { decimals: 0 })}
+      </td>
+      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
+        {formatDate(proposal.dueDate)}
+      </td>
+      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+        {proposal.leadId && proposal.leadNumber ? (
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ fontSize: 11.5, color: 'var(--brand-primary)', textDecoration: 'underline' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              void navigate({ to: '/leads' })
+            }}
+          >
+            {proposal.leadNumber}
+          </button>
+        ) : (
+          '—'
+        )}
+      </td>
+      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>
+        {formatDate(proposal.createdAt)}
+      </td>
+      <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+        <button
+          type="button"
+          className="btn-ghost"
+          style={{ padding: '5px 8px' }}
+          title="Open proposal"
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpen()
+          }}
+        >
+          <Pencil size={13} />
+        </button>
+      </td>
+    </tr>
   )
 }
