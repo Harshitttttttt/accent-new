@@ -48,4 +48,25 @@ describe('TopBar Component', () => {
     expect(screen.getByRole('button', { name: /open notifications/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /new/i })).toBeInTheDocument()
   })
+
+  it('shows the signed-in user name, role, and initials', () => {
+    render(
+      <TopBar
+        currentPage="dashboard"
+        onNavigate={vi.fn()}
+        user={{ fullName: 'Harshit Mestry', username: 'harshit', roleNames: ['Administrator'] }}
+      />,
+    )
+
+    expect(screen.getByText('Harshit Mestry')).toBeInTheDocument()
+    expect(screen.getByText('Administrator')).toBeInTheDocument()
+    expect(screen.getByText('HM')).toBeInTheDocument()
+  })
+
+  it('falls back to guest labels when no user is provided', () => {
+    render(<TopBar currentPage="dashboard" onNavigate={vi.fn()} />)
+
+    expect(screen.getByText('Guest')).toBeInTheDocument()
+    expect(screen.getByText('Not signed in')).toBeInTheDocument()
+  })
 })

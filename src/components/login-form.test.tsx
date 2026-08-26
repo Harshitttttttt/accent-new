@@ -4,10 +4,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { LoginForm } from './login-form'
 
 const mockNavigate = vi.fn()
+const mockInvalidate = vi.fn()
 const mockLoginUser = vi.fn()
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => mockNavigate,
+  useRouter: () => ({ invalidate: mockInvalidate }),
 }))
 
 vi.mock('~/lib/auth.functions', () => ({

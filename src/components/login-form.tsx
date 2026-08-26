@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { useState, type ComponentProps } from 'react'
 import { cn } from '~/lib/utils'
@@ -17,6 +17,7 @@ export function LoginForm({
   ...props
 }: ComponentProps<'form'>) {
   const navigate = useNavigate()
+  const router = useRouter()
   const [status, setStatus] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -43,6 +44,9 @@ export function LoginForm({
         }
 
         await navigate({ to: '/' })
+        // Refetch route loaders so the chrome shows the fresh session even if
+        // route staleTime is ever raised above the default of 0.
+        void router.invalidate()
       } catch (error) {
         setStatus(error instanceof Error ? error.message : 'Login failed')
       } finally {

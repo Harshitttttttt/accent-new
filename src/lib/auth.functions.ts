@@ -12,6 +12,7 @@ import {
   deleteUser,
   findSessionById,
   getCombinedUserMasterData,
+  getUserRoles,
   isUserAdmin,
   listPermissionsWithRoles,
   listRoles,
@@ -95,8 +96,13 @@ export const loginUser = createServerFn({ method: 'POST' })
     }
   })
 
+export type CurrentUserPayload = {
+  user: AuthUser
+  roles: Array<{ code: string; name: string }>
+}
+
 export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
-  async () => {
+  async (): Promise<CurrentUserPayload | null> => {
     setResponseHeader('Cache-Control', 'private, no-store')
 
     const sessionId = parseSessionCookie(getRequestHeader('cookie'))
@@ -111,7 +117,12 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
       return null
     }
 
-    return session.user
+    const roles = await getUserRoles(session.user.id)
+
+    return {
+      user: session.user,
+      roles: roles.map((role) => ({ code: role.code, name: role.name })),
+    }
   },
 )
 

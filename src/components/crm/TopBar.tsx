@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { useDebouncedCallback } from '@tanstack/react-pacer'
+import { initialsFromName, primaryRoleName, type CrmUserView } from '~/lib/user-display'
 
 const PAGE_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -61,8 +62,9 @@ const PAGE_TITLES: Record<string, string> = {
 interface Props {
   currentPage: string
   onNavigate: (page: string) => void
+  user?: CrmUserView | null
 }
-export default function TopBar({ currentPage, onNavigate }: Props) {
+export default function TopBar({ currentPage, onNavigate, user }: Props) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [searchFocused, setSearchFocused] = useState(false)
   const [showQuickCreate, setShowQuickCreate] = useState(false)
@@ -352,23 +354,16 @@ export default function TopBar({ currentPage, onNavigate }: Props) {
           }}
         />
 
-        {/* Avatar */}
+        {/* Avatar — reflects the signed-in account */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            cursor: 'pointer',
             padding: '4px 8px',
             borderRadius: 8,
-            transition: 'background 0.15s',
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = 'var(--surface-secondary)')
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = 'transparent')
-          }
+          title={user ? `${user.fullName} (${user.username})` : undefined}
         >
           <div
             className="avatar"
@@ -378,15 +373,16 @@ export default function TopBar({ currentPage, onNavigate }: Props) {
               height: 30,
               fontSize: 11,
             }}
+            aria-hidden="true"
           >
-            SM
+            {initialsFromName(user?.fullName ?? '')}
           </div>
           <div style={{ fontSize: 12.5 }}>
             <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-              Sara M.
+              {user?.fullName || 'Guest'}
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 10.5 }}>
-              Admin
+              {primaryRoleName(user) ?? 'Not signed in'}
             </div>
           </div>
         </div>

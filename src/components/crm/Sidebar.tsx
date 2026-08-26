@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   LayoutDashboard,
   Users,
@@ -29,13 +30,19 @@ import {
   Monitor,
   BookOpen,
   ChevronLeft,
+  LogOut,
 } from 'lucide-react'
+import { initialsFromName, primaryRoleName, type CrmUserView } from '~/lib/user-display'
 
 type Page = string
 
 interface Props {
   currentPage: Page
   onNavigate: (page: Page) => void
+  /** Signed-in account; omit for a signed-out fallback. */
+  user?: CrmUserView | null
+  /** Signs the user out and redirects; omit to hide the logout item. */
+  onLogout?: () => Promise<void>
 }
 
 interface NavItem {
@@ -138,12 +145,93 @@ const RECENTS = [
   { id: 'proposals', label: 'Proposals', icon: <FileText size={14} /> },
 ]
 
-export default function Sidebar({ currentPage, onNavigate }: Props) {
+const ACCOUNT_MENU_ID = 'sidebar-account-menu'
+
+export default function Sidebar({ currentPage, onNavigate, user, onLogout }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     reports: false,
     masters: false,
   })
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const [menuCoords, setMenuCoords] = useState<{
+    top: number
+    left: number
+    transform: string
+  } | null>(null)
+  const accountRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const gearButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Close the account menu on collapse toggle, outside pointer press, or
+  // Escape. Focus returns to the gear trigger on Escape so keyboard users
+  // don't lose their place.
+  useEffect(() => {
+    if (!accountMenuOpen) return
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node
+      // The menu is portaled to document.body, so check both anchors.
+      if (accountRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return
+      }
+      setAccountMenuOpen(false)
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setAccountMenuOpen(false)
+        gearButtonRef.current?.focus()
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [accountMenuOpen])
+
+  // Collapsing/expanding moves the trigger — never leave a stale-positioned menu.
+  useEffect(() => {
+    setAccountMenuOpen(false)
+  }, [collapsed])
+
+  function toggleAccountMenu() {
+    if (!accountMenuOpen && gearButtonRef.current) {
+      const rect = gearButtonRef.current.getBoundingClientRect()
+      const MENU_WIDTH = 220
+      const MENU_MARGIN = 8
+      // Open upward from the trigger; anchored sideways when collapsed.
+      const left = collapsed
+        ? Math.min(rect.right + 10, window.innerWidth - MENU_WIDTH - MENU_MARGIN)
+        : Math.min(rect.left, window.innerWidth - MENU_WIDTH - MENU_MARGIN)
+      const top = Math.max(MENU_MARGIN, collapsed ? rect.bottom : rect.top - MENU_MARGIN)
+      setMenuCoords({ top, left, transform: 'translateY(-100%)' })
+    }
+    setAccountMenuOpen((open) => !open)
+  }
+
+  async function handleLogout() {
+    if (!onLogout || isLoggingOut) return
+    setIsLoggingOut(true)
+    setLogoutError(null)
+    try {
+      await onLogout()
+      setAccountMenuOpen(false)
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error ? error.message : 'Failed to sign out. Please try again.',
+      )
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
+  const displayName = user?.fullName || 'Guest'
+  const displayRole = primaryRoleName(user) ?? 'Not signed in'
 
   function toggleGroup(id: string) {
     setExpandedGroups((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -371,12 +459,82 @@ export default function Sidebar({ currentPage, onNavigate }: Props) {
         ))}
       </div>
 
+      {/* Account footer — signed-in identity + settings gear at the end of the sidebar */}
+      <div
+        ref={accountRef}
+        style={{
+          borderTop: '1px solid var(--border)',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 30,
+          display: 'flex',
+          flexDirection: collapsed ? 'column' : 'row',
+          alignItems: collapsed ? 'center' : 'center',
+          gap: collapsed ? 2 : 10,
+          padding: collapsed ? '8px 6px' : '12px 14px',
+        }}
+      >
+        {!collapsed && (
+          <>
+            <div
+              className="avatar"
+              style={{
+                background: 'linear-gradient(135deg,#64126D,#86288F)',
+                fontSize: 12,
+              }}
+              aria-hidden="true"
+            >
+              {initialsFromName(user?.fullName ?? '')}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {displayName}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-muted)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {displayRole}
+              </div>
+            </div>
+          </>
+        )}
+        <button
+          ref={gearButtonRef}
+          type="button"
+          className="btn-ghost"
+          aria-label="Account settings"
+          aria-expanded={accountMenuOpen}
+          aria-controls={accountMenuOpen ? ACCOUNT_MENU_ID : undefined}
+          title="Account settings"
+          style={{ padding: 6, borderRadius: 8, flexShrink: 0 }}
+          onClick={toggleAccountMenu}
+        >
+          <Settings size={15} />
+        </button>
+      </div>
+
       {/* Expand button when collapsed */}
       {collapsed && (
         <div
           style={{
-            padding: '8px 6px',
-            borderTop: '1px solid var(--border)',
+            padding: '0 6px 8px',
+            display: 'flex',
+            justifyContent: 'center',
           }}
         >
           <button
@@ -391,50 +549,96 @@ export default function Sidebar({ currentPage, onNavigate }: Props) {
         </div>
       )}
 
-      {/* User */}
-      {!collapsed && (
-        <div
-          style={{
-            padding: '12px 14px',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexShrink: 0,
-          }}
-        >
+      {/* Account settings menu — portaled so the sidebar's overflow:hidden never clips it */}
+      {accountMenuOpen &&
+        menuCoords &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            className="avatar"
+            ref={menuRef}
+            id={ACCOUNT_MENU_ID}
             style={{
-              background: 'linear-gradient(135deg,#64126D,#86288F)',
-              fontSize: 12,
+              position: 'fixed',
+              top: menuCoords.top,
+              left: menuCoords.left,
+              transform: menuCoords.transform,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+              padding: 6,
+              minWidth: 220,
+              zIndex: 200,
             }}
           >
-            SM
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 10px',
+                borderBottom: '1px solid var(--border-subtle)',
+                marginBottom: 4,
               }}
             >
-              Sara Mohammed
+              <div
+                className="avatar"
+                style={{
+                  background: 'linear-gradient(135deg,#64126D,#86288F)',
+                  fontSize: 11,
+                  width: 28,
+                  height: 28,
+                }}
+                aria-hidden="true"
+              >
+                {initialsFromName(user?.fullName ?? '')}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {displayName}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
+                  {displayRole}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Project Manager
-            </div>
-          </div>
-          <Settings
-            size={15}
-            style={{ color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0 }}
-          />
-        </div>
-      )}
+            {onLogout && (
+              <button
+                type="button"
+                className="sidebar-link"
+                style={{ borderRadius: 6, color: 'var(--text-secondary)' }}
+                disabled={isLoggingOut}
+                aria-busy={isLoggingOut}
+                onClick={() => void handleLogout()}
+              >
+                <LogOut size={14} aria-hidden="true" />
+                {isLoggingOut ? 'Signing out…' : 'Log out'}
+              </button>
+            )}
+            {logoutError && (
+              <p
+                role="status"
+                style={{
+                  margin: '6px 4px 2px',
+                  fontSize: 11.5,
+                  color: 'var(--danger, #b3261e)',
+                }}
+              >
+                {logoutError}
+              </p>
+            )}
+          </div>,
+          document.body,
+        )}
     </aside>
   )
 }

@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { CheckCircle2, Lock, Shield, UserPlus } from 'lucide-react'
 import { useState, type ComponentProps } from 'react'
@@ -21,6 +21,7 @@ export function RegisterForm({
   registrationStatus: RegistrationStatus
 }) {
   const navigate = useNavigate()
+  const router = useRouter()
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -74,7 +75,10 @@ export function RegisterForm({
 
         if (isInitial) {
           setTimeout(() => {
-            void navigate({ to: '/' })
+            void navigate({ to: '/' }).then(() =>
+              // Refetch route loaders so the chrome shows the fresh session.
+              router.invalidate(),
+            )
           }, 1000)
         } else {
           form.reset()
