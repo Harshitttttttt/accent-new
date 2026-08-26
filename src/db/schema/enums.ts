@@ -79,3 +79,13 @@ export const milestoneStatusEnum = pgEnum('milestone_status', ['pending', 'in_pr
 export const riskSeverityEnum = pgEnum('risk_severity', ['low', 'medium', 'high'])
 
 export const riskStatusEnum = pgEnum('risk_status', ['open', 'mitigated', 'closed'])
+
+export const assignmentStatusEnum = pgEnum('assignment_status', [
+  'not_started',
+  'in_progress',
+  'on_hold',
+  'completed',
+  'cancelled',
+])
+
+export const assignmentPriorityEnum = pgEnum('assignment_priority', ['low', 'medium', 'high', 'critical'])

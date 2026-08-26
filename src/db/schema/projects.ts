@@ -1,6 +1,8 @@
 import { bigint, check, date, index, integer, pgTable, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import {
+  assignmentPriorityEnum,
+  assignmentStatusEnum,
   leadPriorityEnum,
   milestoneStatusEnum,
   projectLifecycleEnum,
@@ -14,6 +16,7 @@ import { usersTable } from './auth'
 import { employeesTable } from './employees'
 import { companiesTable } from './masters/company'
 import { softwareMastersTable } from './masters/software'
+import { disciplineActivitiesTable, disciplineSubActivitiesTable, disciplinesTable } from './masters/discipline'
 
 /**
  * Delivery projects. A project is typically created by converting an accepted
@@ -237,3 +240,82 @@ export const projectStatusHistoryTable = pgTable(
 
 export type ProjectDataRecord = typeof projectsTable.$inferSelect
 export type NewProjectDataRecord = typeof projectsTable.$inferInsert
+
+/**
+ * Work assignments: which master activity (discipline → activity → optional
+ * sub-activity) a team member is responsible for on a project, with planned
+ * effort. Master links are nullable with name snapshots so restructuring the
+ * masters never corrupts historical assignments.
+ *
+ * Actual effort lives in `project_activity_logs` (one row per work entry) —
+ * the old CRM kept a `daily_entries` JSON blob plus a drift-prone
+ * `actual_hours` counter; child rows + SUM give the same view with no dual
+ * source of truth.
+ */
+export const projectActivityAssignmentsTable = pgTable(
+  'project_activity_assignments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projectsTable.id, { onDelete: 'cascade' }),
+    disciplineId: uuid('discipline_id').references(() => disciplinesTable.id, { onDelete: 'set null' }),
+    activityId: uuid('activity_id').references(() => disciplineActivitiesTable.id, { onDelete: 'set null' }),
+    subActivityId: uuid('sub_activity_id').references(() => disciplineSubActivitiesTable.id, {
+      onDelete: 'set null',
+    }),
+    // Denormalized display names captured at assignment time.
+    disciplineName: varchar('discipline_name', { length: 150 }).notNull(),
+    activityName: varchar('activity_name', { length: 150 }).notNull(),
+    subActivityName: varchar('sub_activity_name', { length: 150 }),
+    assigneeId: uuid('assignee_id').references(() => employeesTable.id, { onDelete: 'set null' }),
+    plannedMinutes: integer('planned_minutes').notNull().default(0),
+    // Optional deliverable count (e.g. number of drawings), unit comes from the master activity.
+    quantity: integer('quantity'),
+    dueDate: date('due_date'),
+    priority: assignmentPriorityEnum('priority').notNull().default('medium'),
+    status: assignmentStatusEnum('status').notNull().default('not_started'),
+    remark: text('remark'),
+    createdBy: uuid('created_by').references(() => usersTable.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_paa_project').on(table.projectId, table.status),
+    index('idx_paa_assignee').on(table.assigneeId),
+    check('chk_paa_planned_nonnegative', sql`${table.plannedMinutes} >= 0`),
+    check('chk_paa_quantity_positive', sql`${table.quantity} is null or ${table.quantity} > 0`),
+  ],
+)
+
+/**
+ * Work entries against an assignment — one row per log ("2h on 2026-08-25").
+ * `projectId` is denormalized so the day-wise work-log view is a single-table
+ * range scan.
+ */
+export const projectActivityLogsTable = pgTable(
+  'project_activity_logs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    assignmentId: uuid('assignment_id')
+      .notNull()
+      .references(() => projectActivityAssignmentsTable.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projectsTable.id, { onDelete: 'cascade' }),
+    logDate: date('log_date').notNull(),
+    minutes: integer('minutes').notNull(),
+    note: text('note'),
+    createdBy: uuid('created_by').references(() => usersTable.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_pal_assignment').on(table.assignmentId, table.logDate),
+    index('idx_pal_project_date').on(table.projectId, table.logDate),
+    check('chk_pal_minutes_range', sql`${table.minutes} > 0 and ${table.minutes} <= 1440`),
+  ],
+)
+
+export type ProjectActivityAssignmentRecord = typeof projectActivityAssignmentsTable.$inferSelect
+export type NewProjectActivityAssignmentRecord = typeof projectActivityAssignmentsTable.$inferInsert
+export type ProjectActivityLogRecord = typeof projectActivityLogsTable.$inferSelect

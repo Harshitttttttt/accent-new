@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -34,6 +34,29 @@ import {
   updateProjectAction,
   updateProjectStatusAction,
 } from '~/lib/projects.functions'
+import {
+  ASSIGNMENT_PRIORITIES,
+  ASSIGNMENT_PRIORITY_LABELS,
+  ASSIGNMENT_STATUSES,
+  ASSIGNMENT_STATUS_BADGES,
+  ASSIGNMENT_STATUS_LABELS,
+  formatMinutes,
+  type AssignmentListItem,
+  type AssignmentPriority,
+  type AssignmentStatus,
+  type WorkLogEntry,
+} from '~/lib/project-activities'
+import {
+  createAssignmentAction,
+  createAssignmentLogAction,
+  deleteAssignmentAction,
+  deleteAssignmentLogAction,
+  getActivityMasterTreeData,
+  getProjectAssignments,
+  getProjectWorkLogs,
+  updateAssignmentAction,
+} from '~/lib/project-activities.functions'
+import type { ActivityTreeDiscipline } from '~/lib/project-activities'
 
 // ── Form state mapping ───────────────────────────────────────────────────
 type MemberFormLine = { employeeId: string; role: string }
@@ -255,13 +278,14 @@ function StringListEditor({
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────
-type TabId = 'overview' | 'scope' | 'team' | 'milestones' | 'risks' | 'commercials' | 'activity'
+type TabId = 'overview' | 'scope' | 'team' | 'milestones' | 'activities' | 'risks' | 'commercials' | 'activity'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'scope', label: 'Scope' },
   { id: 'team', label: 'Team' },
   { id: 'milestones', label: 'Milestones' },
+  { id: 'activities', label: 'Activities' },
   { id: 'risks', label: 'Risks' },
   { id: 'commercials', label: 'Commercials' },
   { id: 'activity', label: 'Activity' },
@@ -775,6 +799,10 @@ export default function ProjectDetailPage({ initialData }: { initialData: Projec
             </FormCard>
           )}
 
+          {tab === 'activities' && (
+            <ActivitiesPanel projectId={detail.id} options={options} onFeedback={showFeedback} />
+          )}
+
           {tab === 'risks' && (
             <FormCard title="Risks" hint="Delivery risks, their severity and mitigation plan.">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -924,6 +952,716 @@ export default function ProjectDetailPage({ initialData }: { initialData: Projec
         </div>
       )}
     </div>
+  )
+}
+
+// ── Activities: assignments + work logs (old CRM's ProjectActivityTab, rebuilt) ──
+type AddFormState = {
+  disciplineId: string
+  activityId: string
+  subActivityId: string
+  assigneeId: string
+  plannedHours: string
+  quantity: string
+  dueDate: string
+  priority: AssignmentPriority
+}
+
+function minutesToHoursInput(minutes: number): string {
+  if (minutes <= 0) return ''
+  return String(minutes / 60)
+}
+
+function ActivitiesPanel({
+  projectId,
+  options,
+  onFeedback,
+}: {
+  projectId: string
+  options: ProjectDetailPayload['options']
+  onFeedback: (type: 'success' | 'error', message: string) => void
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+  const thirtyAgo = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
+
+  const [view, setView] = useState<'assignments' | 'daywise'>('assignments')
+  const [tree, setTree] = useState<ActivityTreeDiscipline[]>([])
+  const [assignments, setAssignments] = useState<AssignmentListItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [addForm, setAddForm] = useState<AddFormState>({
+    disciplineId: '',
+    activityId: '',
+    subActivityId: '',
+    assigneeId: '',
+    plannedHours: '',
+    quantity: '',
+    dueDate: '',
+    priority: 'medium',
+  })
+  const [adding, setAdding] = useState(false)
+
+  const [logFormFor, setLogFormFor] = useState<string | null>(null)
+  const [logForm, setLogForm] = useState({ logDate: today, hours: '', note: '' })
+  const [logging, setLogging] = useState(false)
+
+  const [localRemarks, setLocalRemarks] = useState<Record<string, string>>({})
+  const [remarkState, setRemarkState] = useState<Record<string, 'saving' | 'saved' | 'error'>>({})
+  const remarkTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  // Day-wise state
+  const [logs, setLogs] = useState<WorkLogEntry[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [range, setRange] = useState({ start: thirtyAgo, end: today })
+  const [assigneeFilter, setAssigneeFilter] = useState('all')
+
+  async function loadAssignments() {
+    const rows = await getProjectAssignments({ data: { projectId } })
+    setAssignments(rows)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    void (async () => {
+      try {
+        const [rows, masterTree] = await Promise.all([
+          getProjectAssignments({ data: { projectId } }),
+          getActivityMasterTreeData(),
+        ])
+        if (!cancelled) {
+          setAssignments(rows)
+          setTree(masterTree)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    if (view !== 'daywise') return
+    let cancelled = false
+    setLogsLoading(true)
+    void getProjectWorkLogs({ data: { projectId, startDate: range.start, endDate: range.end, assigneeId: assigneeFilter === 'all' ? null : assigneeFilter } })
+      .then((rows) => {
+        if (!cancelled) setLogs(rows)
+      })
+      .finally(() => {
+        if (!cancelled) setLogsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [view, projectId, range, assigneeFilter])
+
+  // Cleanup pending remark timers on unmount
+  useEffect(() => {
+    const timers = remarkTimers.current
+    return () => {
+      for (const t of Object.values(timers)) clearTimeout(t)
+    }
+  }, [])
+
+  const selectedDiscipline = tree.find((d) => d.id === addForm.disciplineId)
+  const selectedActivity = selectedDiscipline?.activities.find((a) => a.id === addForm.activityId)
+  const selectedSub = selectedActivity?.subActivities.find((s) => s.id === addForm.subActivityId)
+
+  async function handleAdd() {
+    const discipline = tree.find((d) => d.id === addForm.disciplineId)
+    const activity = discipline?.activities.find((a) => a.id === addForm.activityId)
+    if (!discipline || !activity) {
+      onFeedback('error', 'Select a discipline and an activity.')
+      return
+    }
+    const sub = activity.subActivities.find((s) => s.id === addForm.subActivityId)
+    const plannedMinutes = addForm.plannedHours.trim() === '' ? 0 : Math.round(parseFloat(addForm.plannedHours) * 60)
+    if (Number.isNaN(plannedMinutes) || plannedMinutes < 0) {
+      onFeedback('error', 'Planned hours must be a number.')
+      return
+    }
+    setAdding(true)
+    try {
+      const res = await createAssignmentAction({
+        data: {
+          projectId,
+          disciplineId: discipline.id,
+          activityId: activity.id,
+          subActivityId: sub?.id ?? null,
+          disciplineName: discipline.name,
+          activityName: activity.name,
+          subActivityName: sub?.name ?? null,
+          assigneeId: addForm.assigneeId || null,
+          plannedMinutes,
+          quantity: addForm.quantity.trim() === '' ? null : Number(addForm.quantity),
+          dueDate: addForm.dueDate || null,
+          priority: addForm.priority,
+          remark: null,
+        },
+      })
+      if (!res.ok) throw new Error(res.message)
+      onFeedback('success', 'Activity assigned.')
+      setAddForm({ disciplineId: '', activityId: '', subActivityId: '', assigneeId: '', plannedHours: '', quantity: '', dueDate: '', priority: 'medium' })
+      await loadAssignments()
+    } catch (err) {
+      onFeedback('error', err instanceof Error ? err.message : 'Failed to assign activity.')
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function patch(id: string, fields: Record<string, unknown>): Promise<boolean> {
+    const res = await updateAssignmentAction({ data: { id, ...fields } })
+    if (!res.ok) {
+      onFeedback('error', res.message)
+      return false
+    }
+    return true
+  }
+
+  function handleRemarkChange(assignment: AssignmentListItem, text: string) {
+    setLocalRemarks((prev) => ({ ...prev, [assignment.id]: text }))
+    setRemarkState((prev) => ({ ...prev, [assignment.id]: 'saving' }))
+    clearTimeout(remarkTimers.current[assignment.id])
+    remarkTimers.current[assignment.id] = setTimeout(async () => {
+      const ok = await patch(assignment.id, { remark: text })
+      setRemarkState((prev) => ({ ...prev, [assignment.id]: ok ? 'saved' : 'error' }))
+      if (ok) setTimeout(() => setRemarkState((p) => ({ ...p, [assignment.id]: 'idle' as never })), 2000)
+    }, 800)
+  }
+
+  async function handleLogWork(assignmentId: string) {
+    const minutes = logForm.hours.trim() === '' ? 0 : Math.round(parseFloat(logForm.hours) * 60)
+    if (!minutes || minutes <= 0) {
+      onFeedback('error', 'Enter the hours you worked.')
+      return
+    }
+    setLogging(true)
+    try {
+      const res = await createAssignmentLogAction({
+        data: { assignmentId, logDate: logForm.logDate, minutes, note: logForm.note.trim() || null },
+      })
+      if (!res.ok) throw new Error(res.message)
+      onFeedback('success', `Logged ${formatMinutes(minutes)}.`)
+      setLogFormFor(null)
+      setLogForm({ logDate: today, hours: '', note: '' })
+      await loadAssignments()
+      if (view === 'daywise') setLogsLoading(true)
+    } catch (err) {
+      onFeedback('error', err instanceof Error ? err.message : 'Failed to log work.')
+    } finally {
+      setLogging(false)
+    }
+  }
+
+  async function handleDelete(assignment: AssignmentListItem) {
+    if (confirmDelete !== assignment.id) {
+      setConfirmDelete(assignment.id)
+      setTimeout(() => setConfirmDelete((c) => (c === assignment.id ? null : c)), 3000)
+      return
+    }
+    setConfirmDelete(null)
+    const res = await deleteAssignmentAction({ data: { id: assignment.id } })
+    if (!res.ok) {
+      onFeedback('error', res.message)
+      return
+    }
+    onFeedback('success', 'Assignment removed.')
+    await loadAssignments()
+  }
+
+  // Day-wise grouping: employee → date → entries, with totals.
+  const dayGroups = useMemo(() => {
+    const byUser = new Map<string, { name: string; dates: Map<string, WorkLogEntry[]>; total: number }>()
+    for (const entry of logs) {
+      const key = entry.assigneeId ?? 'unassigned'
+      if (!byUser.has(key)) byUser.set(key, { name: entry.assigneeName ?? 'Unassigned', dates: new Map(), total: 0 })
+      const user = byUser.get(key)!
+      if (!user.dates.has(entry.logDate)) user.dates.set(entry.logDate, [])
+      user.dates.get(entry.logDate)!.push(entry)
+      user.total += entry.minutes
+    }
+    return [...byUser.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [logs])
+  const grandTotal = logs.reduce((sum, e) => sum + e.minutes, 0)
+
+  const tabular = { fontVariantNumeric: 'tabular-nums' as const }
+  const compactSelect = { padding: '4px 8px', fontSize: 12, width: '100%' }
+
+  return (
+    <>
+      {/* View toggle */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          {(['assignments', 'daywise'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="btn-ghost"
+              style={{
+                padding: '7px 14px',
+                borderRadius: 0,
+                fontSize: 12.5,
+                fontWeight: view === v ? 700 : 500,
+                background: view === v ? 'var(--brand-primary)' : 'transparent',
+                color: view === v ? '#fff' : 'var(--text-muted)',
+              }}
+              onClick={() => setView(v)}
+            >
+              {v === 'assignments' ? 'By activity' : 'Day-wise log'}
+            </button>
+          ))}
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {assignments.length} assignment{assignments.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      {loading ? (
+        <FormCard title="Activities">
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>Loading…</p>
+        </FormCard>
+      ) : view === 'assignments' ? (
+        <>
+          {/* Assign form */}
+          <FormCard title="Assign activity" hint="Pick from the Discipline → Activity → Sub-activity masters; effort is planned in hours.">
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1.2fr 90px 80px 130px 110px auto', gap: 8, alignItems: 'end' }}>
+              <Select
+                aria-label="Discipline"
+                value={addForm.disciplineId}
+                onChange={(e) => setAddForm({ ...addForm, disciplineId: e.target.value, activityId: '', subActivityId: '' })}
+                style={compactSelect}
+              >
+                <option value="">Discipline…</option>
+                {tree.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </Select>
+              <Select
+                aria-label="Activity"
+                value={addForm.activityId}
+                onChange={(e) => setAddForm({ ...addForm, activityId: e.target.value, subActivityId: '' })}
+                style={compactSelect}
+                disabled={!addForm.disciplineId}
+              >
+                <option value="">Activity…</option>
+                {selectedDiscipline?.activities.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </Select>
+              <Select
+                aria-label="Sub-activity"
+                value={addForm.subActivityId}
+                onChange={(e) => setAddForm({ ...addForm, subActivityId: e.target.value })}
+                style={compactSelect}
+                disabled={!addForm.activityId}
+              >
+                <option value="">Sub-activity…</option>
+                {selectedActivity?.subActivities.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </Select>
+              <Select
+                aria-label="Assignee"
+                value={addForm.assigneeId}
+                onChange={(e) => setAddForm({ ...addForm, assigneeId: e.target.value })}
+                style={compactSelect}
+              >
+                <option value="">Assignee…</option>
+                {options.employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {[emp.firstName, emp.lastName].filter(Boolean).join(' ')}
+                  </option>
+                ))}
+              </Select>
+              <TextInput
+                aria-label="Planned hours"
+                placeholder="Hrs"
+                inputMode="decimal"
+                value={addForm.plannedHours}
+                onChange={(e) => setAddForm({ ...addForm, plannedHours: e.target.value })}
+                style={compactSelect}
+              />
+              <TextInput
+                aria-label="Quantity"
+                placeholder="Qty"
+                inputMode="numeric"
+                value={addForm.quantity}
+                onChange={(e) => setAddForm({ ...addForm, quantity: e.target.value })}
+                style={compactSelect}
+              />
+              <TextInput
+                aria-label="Due date"
+                type="date"
+                value={addForm.dueDate}
+                onChange={(e) => setAddForm({ ...addForm, dueDate: e.target.value })}
+                style={compactSelect}
+              />
+              <Select
+                aria-label="Priority"
+                value={addForm.priority}
+                onChange={(e) => setAddForm({ ...addForm, priority: e.target.value as AssignmentPriority })}
+                style={compactSelect}
+              >
+                {ASSIGNMENT_PRIORITIES.map((p) => (
+                  <option key={p} value={p}>{ASSIGNMENT_PRIORITY_LABELS[p]}</option>
+                ))}
+              </Select>
+              <Button onClick={() => void handleAdd()} disabled={adding} className="whitespace-nowrap">
+                {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Assign
+              </Button>
+            </div>
+          </FormCard>
+
+          {/* Assignment table */}
+          <div className="card" style={{ overflowX: 'auto', padding: 0 }}>
+            {assignments.length === 0 ? (
+              <div style={{ padding: 32, textAlign: 'center' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700 }}>No activities assigned</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                  Assign the first activity above — team members then log their work against it.
+                </p>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-secondary)' }}>
+                    {['Activity', 'Assignee', 'Planned', 'Logged', 'Due', 'Priority', 'Status', 'Remark', ''].map((h, i) => (
+                      <th key={i} style={{ textAlign: 'left', padding: '8px 10px', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {assignments.map((a) => {
+                    const progress = a.plannedMinutes > 0 ? Math.min(100, Math.round((a.loggedMinutes / a.plannedMinutes) * 100)) : null
+                    const remark = localRemarks[a.id] ?? a.remark ?? ''
+                    return (
+                      <AssignmentRow
+                        key={a.id}
+                        assignment={a}
+                        progress={progress}
+                        remark={remark}
+                        remarkState={remarkState[a.id] ?? null}
+                        employees={options.employees}
+                        compactSelect={compactSelect}
+                        tabular={tabular}
+                        logFormFor={logFormFor}
+                        logForm={logForm}
+                        logging={logging}
+                        confirmDelete={confirmDelete === a.id}
+                        onPatch={patch}
+                        onRemarkChange={handleRemarkChange}
+                        onOpenLog={() => {
+                          setLogFormFor(logFormFor === a.id ? null : a.id)
+                          setLogForm({ logDate: today, hours: '', note: '' })
+                        }}
+                        onLogFormChange={setLogForm}
+                        onLogSubmit={() => void handleLogWork(a.id)}
+                        onDelete={() => void handleDelete(a)}
+                      />
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Day-wise work log */
+        <FormCard
+          title="Day-wise work log"
+          hint={logsLoading ? 'Loading…' : `${logs.length} entries · ${formatMinutes(grandTotal)} total`}
+        >
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+            <TextInput type="date" aria-label="From" value={range.start} onChange={(e) => setRange({ ...range, start: e.target.value })} style={{ ...compactSelect, width: 150 }} />
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→</span>
+            <TextInput type="date" aria-label="To" value={range.end} onChange={(e) => setRange({ ...range, end: e.target.value })} style={{ ...compactSelect, width: 150 }} />
+            <Select aria-label="Assignee filter" value={assigneeFilter} onChange={(e) => setAssigneeFilter(e.target.value)} style={{ ...compactSelect, width: 180 }}>
+              <option value="all">All assignees</option>
+              {options.employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {[emp.firstName, emp.lastName].filter(Boolean).join(' ')}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {dayGroups.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>
+              No work logged in this period.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {dayGroups.map((user) => (
+                <div key={user.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700 }}>{user.name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', ...tabular }}>
+                      {formatMinutes(user.total)}
+                    </span>
+                  </div>
+                  {[...user.dates.entries()].map(([date, entries]) => (
+                    <div key={date} style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, ...tabular }}>
+                        {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })}
+                        {' · '}
+                        {formatMinutes(entries.reduce((s, e) => s + e.minutes, 0))}
+                      </div>
+                      {entries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          style={{
+                            display: 'flex',
+                            gap: 10,
+                            alignItems: 'baseline',
+                            padding: '6px 10px',
+                            borderRadius: 6,
+                            background: 'var(--surface-secondary)',
+                            marginBottom: 4,
+                          }}
+                        >
+                          <span style={{ fontSize: 12.5, fontWeight: 600, minWidth: 170 }}>
+                            {entry.activityName}
+                            {entry.subActivityName ? ` — ${entry.subActivityName}` : ''}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{entry.disciplineName}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1, minWidth: 0 }}>
+                            {entry.note ?? ''}
+                          </span>
+                          <span style={{ fontSize: 12, fontWeight: 700, ...tabular }}>{formatMinutes(entry.minutes)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </FormCard>
+      )}
+    </>
+  )
+}
+
+function AssignmentRow({
+  assignment: a,
+  progress,
+  remark,
+  remarkState,
+  employees,
+  compactSelect,
+  tabular,
+  logFormFor,
+  logForm,
+  logging,
+  confirmDelete,
+  onPatch,
+  onRemarkChange,
+  onOpenLog,
+  onLogFormChange,
+  onLogSubmit,
+  onDelete,
+}: {
+  assignment: AssignmentListItem
+  progress: number | null
+  remark: string
+  remarkState: 'saving' | 'saved' | 'error' | null
+  employees: { id: string; firstName: string; lastName: string | null }[]
+  compactSelect: React.CSSProperties
+  tabular: React.CSSProperties
+  logFormFor: string | null
+  logForm: { logDate: string; hours: string; note: string }
+  logging: boolean
+  confirmDelete: boolean
+  onPatch: (id: string, fields: Record<string, unknown>) => Promise<boolean>
+  onRemarkChange: (assignment: AssignmentListItem, text: string) => void
+  onOpenLog: () => void
+  onLogFormChange: (next: { logDate: string; hours: string; note: string }) => void
+  onLogSubmit: () => void
+  onDelete: () => void
+}) {
+  const overdue = a.dueDate !== null && a.status !== 'completed' && a.status !== 'cancelled' && a.dueDate < new Date().toISOString().slice(0, 10)
+
+  return (
+    <>
+      <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+        <td style={{ padding: '8px 10px', minWidth: 200 }}>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {a.activityName}
+            {a.subActivityName ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> — {a.subActivityName}</span> : null}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.disciplineName}</div>
+        </td>
+        <td style={{ padding: '8px 10px', minWidth: 130 }}>
+          <Select
+            aria-label="Assignee"
+            value={a.assigneeId ?? ''}
+            onChange={(e) => void onPatch(a.id, { assigneeId: e.target.value || null })}
+            style={compactSelect}
+          >
+            <option value="">Unassigned</option>
+            {employees.map((emp) => (
+              <option key={emp.id} value={emp.id}>
+                {[emp.firstName, emp.lastName].filter(Boolean).join(' ')}
+              </option>
+            ))}
+          </Select>
+        </td>
+        <td style={{ padding: '8px 10px', ...tabular }}>
+          <TextInput
+            aria-label="Planned hours"
+            defaultValue={minutesToHoursInput(a.plannedMinutes)}
+            inputMode="decimal"
+            style={{ ...compactSelect, width: 64, textAlign: 'right' }}
+            onBlur={(e) => {
+              const minutes = e.target.value.trim() === '' ? 0 : Math.round(parseFloat(e.target.value) * 60)
+              if (!Number.isNaN(minutes) && minutes >= 0 && minutes !== a.plannedMinutes) {
+                void onPatch(a.id, { plannedMinutes: minutes })
+              }
+            }}
+          />
+        </td>
+        <td style={{ padding: '8px 10px', minWidth: 110, ...tabular }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 46, height: 4, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${progress ?? 0}%`,
+                  height: '100%',
+                  background: progress != null && progress >= 100 ? 'var(--success)' : 'var(--brand-primary)',
+                }}
+              />
+            </div>
+            <span style={{ fontSize: 11.5, fontWeight: 600 }}>
+              {formatMinutes(a.loggedMinutes)}
+              {a.plannedMinutes > 0 ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> / {formatMinutes(a.plannedMinutes)}</span> : null}
+            </span>
+          </div>
+        </td>
+        <td style={{ padding: '8px 10px', ...tabular }}>
+          <TextInput
+            aria-label="Due date"
+            type="date"
+            defaultValue={a.dueDate ?? ''}
+            style={{ ...compactSelect, width: 130, ...(overdue ? { borderColor: 'var(--warning)' } : null) }}
+            onChange={(e) => void onPatch(a.id, { dueDate: e.target.value || null })}
+          />
+        </td>
+        <td style={{ padding: '8px 10px' }}>
+          <Select
+            aria-label="Priority"
+            value={a.priority}
+            onChange={(e) => void onPatch(a.id, { priority: e.target.value })}
+            style={compactSelect}
+          >
+            {ASSIGNMENT_PRIORITIES.map((p) => (
+              <option key={p} value={p}>{ASSIGNMENT_PRIORITY_LABELS[p]}</option>
+            ))}
+          </Select>
+        </td>
+        <td style={{ padding: '8px 10px' }}>
+          <Select
+            aria-label="Status"
+            value={a.status}
+            onChange={(e) => void onPatch(a.id, { status: e.target.value })}
+            style={{ ...compactSelect, fontWeight: 600 }}
+          >
+            {ASSIGNMENT_STATUSES.map((s) => (
+              <option key={s} value={s}>{ASSIGNMENT_STATUS_LABELS[s]}</option>
+            ))}
+          </Select>
+        </td>
+        <td style={{ padding: '8px 10px', minWidth: 160 }}>
+          <div style={{ position: 'relative' }}>
+            <TextInput
+              aria-label="Remark"
+              value={remark}
+              placeholder="Add a remark…"
+              maxLength={2_000}
+              onChange={(e) => onRemarkChange(a, e.target.value)}
+              style={compactSelect}
+            />
+            {remarkState === 'saving' && (
+              <Loader2 size={12} className="animate-spin" style={{ position: 'absolute', right: 8, top: 9, color: 'var(--text-muted)' }} />
+            )}
+            {remarkState === 'saved' && (
+              <CheckCircle2 size={13} style={{ position: 'absolute', right: 8, top: 9, color: 'var(--success)' }} />
+            )}
+            {remarkState === 'error' && (
+              <AlertCircle size={13} style={{ position: 'absolute', right: 8, top: 9, color: 'var(--danger)' }} />
+            )}
+          </div>
+        </td>
+        <td style={{ padding: '8px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ padding: '4px 6px', color: logFormFor === a.id ? 'var(--brand-primary)' : undefined }}
+            title="Log work"
+            onClick={onOpenLog}
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ padding: '4px 6px', color: confirmDelete ? '#fff' : 'var(--danger)', background: confirmDelete ? 'var(--danger)' : undefined }}
+            title={confirmDelete ? 'Click again to remove' : 'Remove assignment'}
+            onClick={onDelete}
+          >
+            {confirmDelete ? 'Sure?' : <Trash2 size={13} />}
+          </button>
+        </td>
+      </tr>
+      {logFormFor === a.id && (
+        <tr style={{ background: 'var(--surface-secondary)' }}>
+          <td colSpan={9} style={{ padding: '10px 12px' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>Log work — {a.activityName}</span>
+              <TextInput
+                aria-label="Work date"
+                type="date"
+                value={logForm.logDate}
+                onChange={(e) => onLogFormChange({ ...logForm, logDate: e.target.value })}
+                style={{ ...compactSelect, width: 150 }}
+              />
+              <TextInput
+                aria-label="Hours"
+                placeholder="Hours (e.g. 2.5)"
+                inputMode="decimal"
+                value={logForm.hours}
+                onChange={(e) => onLogFormChange({ ...logForm, hours: e.target.value })}
+                style={{ ...compactSelect, width: 130 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onLogSubmit()
+                }}
+              />
+              <TextInput
+                aria-label="What did you do"
+                placeholder="What did you do? (optional)"
+                value={logForm.note}
+                maxLength={2_000}
+                onChange={(e) => onLogFormChange({ ...logForm, note: e.target.value })}
+                style={{ ...compactSelect, flex: 1, minWidth: 200 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onLogSubmit()
+                }}
+              />
+              <Button onClick={onLogSubmit} disabled={logging} className="whitespace-nowrap">
+                {logging ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Log
+              </Button>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }
 
