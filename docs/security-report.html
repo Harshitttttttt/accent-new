@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AccentCRM — Security Report (2026-08-27)</title>
+<style>
+  :root{--brand:#64126D;--brand2:#7F2487;--bg:#F8F9FC;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--ok:#16a34a;--warn:#d97706;--crit:#dc2626;--high:#ea580c}
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text);line-height:1.5}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:28px 24px}
+  header h1{margin:0;font-size:22px;letter-spacing:-.02em} header p{margin:6px 0 0;opacity:.9;font-size:13px}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .card h3{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .kpi{font-size:22px;font-weight:700} .kpi.crit{color:var(--crit)} .kpi.high{color:var(--high)} .kpi.med{color:var(--warn)} .kpi.low{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:999px;color:#fff;vertical-align:middle}
+  .badge-Critical{background:var(--crit)} .badge-High{background:var(--high)} .badge-Medium{background:var(--warn)} .badge-Low{background:#6b7280}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  th,td{padding:10px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:#fafafa;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  tr:last-child td{border-bottom:none}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#f3f4f6;padding:1px 6px;border-radius:6px;word-break:break-all}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted)}
+  h2{font-size:16px;margin:24px 0 10px} h3{font-size:14px;margin:18px 0 8px}
+  details{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:10px}
+  details summary{cursor:pointer;font-weight:600;font-size:13px}
+  .callout{border-left:4px solid var(--crit);background:#fef2f2;padding:12px 14px;border-radius:8px;margin:14px 0;font-size:13px}
+  .callout.ok{border-color:var(--ok);background:#f0fdf4}
+  footer{color:var(--muted);font-size:12px;padding:18px 0 30px;text-align:center}
+  a{color:var(--brand2)} @media print{header{padding:16px} .wrap{padding:12px} table{font-size:11px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>AccentCRM — Security Deep-Dive</h1>
+    <p>2026-08-27 · bases <span class="mono">tzevk/accent</span> (Node 24 / Next 16 / MySQL) + <span class="mono">Harshitttttttt/accent-new</span> (TanStack Start / Drizzle / Neon) · branch <span class="mono">hermes/security-audit</span> → <span class="mono">dev</span></p>
+  </div>
+</header>
+<div class="wrap">
+  <div class="callout">
+    <strong>P0 — fix before next review:</strong> (1) Gate 7 unauthenticated read endpoints in <span class="mono">src/lib/crm.functions.ts</span> + <span class="mono">project-activities.functions.ts</span> (<span class="mono">getCrmSnapshot</span>, <span class="mono">getDatabaseHealth</span>, <span class="mono">getActivityMasterTree</span> …) — anonymous callers can enumerate CRM data. (2) Add rate limiting to <span class="mono">loginUser</span> (5/15 min per IP + email). (3) Wire <span class="mono">pnpm audit</span> in CI; old repo has <strong>13 vulns (1 critical, 10 high)</strong>.
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>Critical</h3><div class="kpi crit">2</div><div style="font-size:12px;color:var(--muted)">Unauth reads (new) + deps (old)</div></div>
+    <div class="card"><h3>High</h3><div class="kpi high">4</div><div style="font-size:12px;color:var(--muted)">Rate limiting (both) + plaintext fallback + brace/undici</div></div>
+    <div class="card"><h3>Medium</h3><div class="kpi med">7</div><div style="font-size:12px;color:var(--muted)">Regex sanitizer, cookies, headers, isDelete, IP handling</div></div>
+    <div class="card"><h3>Low</h3><div class="kpi low">4</div><div style="font-size:12px;color:var(--muted)">Cache replay, minor coercion, innerHTML, session TTL</div></div>
+  </div>
+
+  <h2>Finding index</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Severity</th><th>Repo</th><th>Title</th><th>File:line</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill">C-01</span></td><td><span class="badge badge-Critical">Critical</span></td><td>old</td><td>13 vulns — brace-expansion, extract-zip, undici, vite</td><td><span class="mono">package-lock.json</span> / <span class="mono">npm audit</span></td></tr>
+      <tr><td><span class="pill">C-02</span></td><td><span class="badge badge-Critical">Critical</span></td><td>new</td><td>7 read endpoints with zero auth (CRM snapshot + tree + health)</td><td><span class="mono">src/lib/crm.functions.ts:22,26,36,40,44,52</span><br/><span class="mono">src/lib/project-activities.functions.ts:23</span></td></tr>
+      <tr><td><span class="pill">H-01</span></td><td><span class="badge badge-High">High</span></td><td>old</td><td>Legacy plaintext password fallback, non-constant-time compare</td><td><span class="mono">src/utils/password.ts:18-27</span>, <span class="mono">src/app/api/login/route.js:93-104</span></td></tr>
+      <tr><td><span class="pill">H-02</span></td><td><span class="badge badge-High">High</span></td><td>old</td><td>In-memory rate limiter not shared across instances; x-forwarded-for spoofable</td><td><span class="mono">proxy.ts:38-204</span></td></tr>
+      <tr><td><span class="pill">H-03</span></td><td><span class="badge badge-High">High</span></td><td>new</td><td>No rate limiting at all (login brute-force)</td><td><span class="mono">src/lib/auth.functions.ts:62-97</span></td></tr>
+      <tr><td><span class="pill">H-04</span></td><td><span class="badge badge-High">High</span></td><td>new</td><td>Activity tree cached as private but served without auth</td><td><span class="mono">src/lib/project-activities.functions.ts:23</span></td></tr>
+      <tr><td><span class="pill">M-01</span></td><td><span class="badge badge-Medium">Medium</span></td><td>old</td><td>Proxy only checks cookie presence (deferred validation)</td><td><span class="mono">proxy.ts:221-260</span></td></tr>
+      <tr><td><span class="pill">M-02</span></td><td><span class="badge badge-Medium">Medium</span></td><td>old</td><td>Cookie Secure / __Host- prefix not enforced on all paths</td><td><span class="mono">src/app/api/login/route.js:218-225</span>, <span class="mono">logout/route.js:59-63</span></td></tr>
+      <tr><td><span class="pill">M-03</span></td><td><span class="badge badge-Medium">Medium</span></td><td>old</td><td>Dual permission model easy to mis-configure</td><td><span class="mono">src/utils/permissions.js:50-86</span></td></tr>
+      <tr><td><span class="pill">M-04</span></td><td><span class="badge badge-Medium">Medium</span></td><td>old</td><td>Rate-limit key includes raw session token</td><td><span class="mono">proxy.ts:127-130</span></td></tr>
+      <tr><td><span class="pill">M-05</span></td><td><span class="badge badge-Medium">Medium</span></td><td>old</td><td>Regex sanitizeHtml bypassable (svg/onload, etc.)</td><td><span class="mono">src/lib/sanitize.js:12-40</span></td></tr>
+      <tr><td><span class="pill">M-06</span></td><td><span class="badge badge-Medium">Medium</span></td><td>new</td><td>Cookie Secure only in production, no __Host- prefix</td><td><span class="mono">src/lib/auth.functions.ts:39-47</span></td></tr>
+      <tr><td><span class="pill">M-07</span></td><td><span class="badge badge-Medium">Medium</span></td><td>new</td><td>No security headers (CSP, HSTS, X-Frame, nosniff)</td><td><span class="mono">vite.config.ts</span>, <span class="mono">wrangler.jsonc</span></td></tr>
+      <tr><td><span class="pill">M-08</span></td><td><span class="badge badge-Medium">Medium</span></td><td>new</td><td>Soft-delete (isDelete) not implemented — hard deletes</td><td><span class="mono">src/db/schema/**</span></td></tr>
+      <tr><td><span class="pill">L-01</span></td><td><span class="badge badge-Low">Low</span></td><td>old</td><td>5-min user cache → logout replay window if invalidation missed</td><td><span class="mono">src/utils/api-permissions.js:22</span></td></tr>
+      <tr><td><span class="pill">L-02</span></td><td><span class="badge badge-Low">Low</span></td><td>old</td><td>is_super_admin coercion inconsistent (===1 vs truthy)</td><td><span class="mono">src/utils/permissions.js:55</span></td></tr>
+      <tr><td><span class="pill">L-03</span></td><td><span class="badge badge-Low">Low</span></td><td>old</td><td>tempDiv.innerHTML sink in proposal page</td><td><span class="mono">src/app/proposals/[id]/page.js:401</span></td></tr>
+      <tr><td><span class="pill">L-04</span></td><td><span class="badge badge-Low">Low</span></td><td>new</td><td>No per-login expired-session cleanup</td><td><span class="mono">src/lib/auth.server.ts:211-213</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>What’s clean</h2>
+  <div class="callout ok">
+    <strong>SQL injection:</strong> safe in both repos (mysql2 placeholders / Drizzle parameterization).<br/>
+    <strong>Secrets:</strong> clean — <span class="mono">.env</span> / <span class="mono">.dev.vars</span> gitignored, no hardcoded keys; webhook uses <span class="mono">timingSafeEqual</span> via SHA-256.<br/>
+    <strong>Money:</strong> excellent — Decimal.js + paise integers, Indian grouping, GST helpers (new precision 28).<br/>
+    <strong>Uploads (old):</strong> <span class="mono">sharp</span> rasterization with <span class="mono">limitInputPixels:40M</span> neutralizes SVG polyglots; <span class="mono">/uploads</span> served with <span class="mono">nosniff + attachment</span>.<br/>
+    <strong>Scrypt + CSRF (new):</strong> N=16384 r=8 p=1, base64url tokens, <span class="mono">createCsrfMiddleware</span> on all <span class="mono">serverFn</span>.
+  </div>
+
+  <h2>Remediation backlog (for accent-new)</h2>
+  <details open><summary>P0 — before next review</summary>
+    <ul>
+      <li><strong>C-02:</strong> Add <span class="mono">*ForCookie</span> auth wrappers in <span class="mono">crm.server.ts</span> (mirror <span class="mono">leads.server.ts:340-353</span>), update <span class="mono">crm.functions.ts</span> to pass <span class="mono">getRequestHeader('cookie')</span>; restrict <span class="mono">getDatabaseHealth</span> to admin.</li>
+      <li><strong>H-03:</strong> Rate limit <span class="mono">loginUser</span> 5/15 min per IP+email (Cloudflare rule + KV fallback, return 429 with Retry-After).</li>
+      <li><strong>C-01:</strong> <span class="mono">pnpm audit --prod</span> in CI; patch old’s deps with <span class="mono">npm audit fix</span>.</li>
+    </ul>
+  </details>
+  <details><summary>P1 — this sprint</summary>
+    <ul>
+      <li>Cookie hardening: <span class="mono">__Host-accentcrm_session</span>, always Secure over https, document SameSite=Lax posture.</li>
+      <li>Security headers: CSP / HSTS / X-Frame (frame-ancestors 'none') / nosniff / Referrer-Policy via Workers.</li>
+      <li>Tiptap server sanitization (<span class="mono">isomorphic-dompurify</span>) before persisting rich text.</li>
+      <li>Decide soft-delete: add <span class="mono">isDeleted</span> + filtered indexes or document hard-delete with audit logs.</li>
+    </ul>
+  </details>
+  <details><summary>P2 — next sprint</summary>
+    <ul>
+      <li>7-day sliding sessions + <span class="mono">deleteExpiredSessions</span> cron; fix <span class="mono">getActivityMasterTree</span> cache to <span class="mono">no-store</span> / <span class="mono">Vary: Cookie</span>.</li>
+      <li>Add <span class="mono">eslint</span> + <span class="mono">tsc --noEmit</span> to CI (new has “no lint script”).</li>
+      <li>Migrate old’s remaining plaintext passwords and remove <span class="mono">needsRehash</span>.</li>
+    </ul>
+  </details>
+
+  <h2>Evidence &amp; file index</h2>
+  <table>
+    <thead><tr><th>Repo</th><th>Key evidence</th></tr></thead>
+    <tbody>
+      <tr><td>old</td><td><span class="mono">proxy.ts:38-310</span> limiter + handler; <span class="mono">src/utils/api-permissions.js:19-205</span> cache + _fetchUserFromDb; <span class="mono">src/utils/session.ts</span>; <span class="mono">src/utils/database.js</span> pool; <span class="mono">src/lib/sanitize.js</span>; <span class="mono">src/app/api/login/route.js</span>, <span class="mono">logout/route.js</span>, <span class="mono">attendance/webhook/route.ts</span>, <span class="mono">uploads/route.js</span>; <span class="mono">next.config.ts:38-48</span> headers</td></tr>
+      <tr><td>new</td><td><span class="mono">src/lib/auth.server.ts:18-273</span> scrypt/session/cookie; <span class="mono">auth.functions.ts:39-97</span> cookies + login; <span class="mono">src/start.ts</span> CSRF; <span class="mono">src/env/server.ts</span> lazy env; <span class="mono">src/db/index.server.ts</span> lazy neon; <span class="mono">src/lib/crm.functions.ts:22,26,36,40,44,52</span> (unauth); <span class="mono">src/lib/money.ts</span> paise; <span class="mono">src/routes/__root.tsx:82-97</span> loader</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Commands to re-verify</h2>
+  <div style="background:#111827;color:#e5e7eb;padding:12px 14px;border-radius:10px;font-family:ui-monospace,monospace;font-size:12px;overflow-x:auto">
+    npm audit --json<br/>
+    grep -rn 'findSessionById|parseSessionCookie' src/lib --include='*.ts'<br/>
+    grep -rn 'createServerFn' src/lib --include='*.ts' | xargs -I{} sh -c 'grep -q "getRequestHeader.*cookie" {} || echo "MISSING AUTH: {}"'<br/>
+    pnpm test &amp;&amp; pnpm build &amp;&amp; pnpm audit --prod
+  </div>
+
+  <footer>Generated 2026-08-27 · <span class="mono">hermes/security-audit</span> · Full markdown: <span class="mono">.hermes/plans/accent-security-report.md</span> · Reviewers: try <span class="mono">getCrmSnapshot</span> without a cookie — should 401 after P0 fix.</footer>
+</div>
+</body>
+</html>
