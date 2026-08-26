@@ -5,18 +5,6 @@ const ADMIN_MODULES: Record<
   string,
   { title: string; description: string; columns: string[] }
 > = {
-  quotations: {
-    title: 'Quotations',
-    description: 'Manage client quotations and estimates',
-    columns: [
-      'ID',
-      'Quotation No.',
-      'Description',
-      'Amount',
-      'Status',
-      'Date',
-    ],
-  },
   'purchase-orders': {
     title: 'Purchase Orders',
     description: 'Track procurement and material purchase orders',

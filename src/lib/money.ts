@@ -215,3 +215,69 @@ export function parseINRToPaise(formattedString: string): Paise {
 
   return rupeesToPaise(cleaned)
 }
+
+// ── Amount in words (Indian numbering system) ─────────────────────────────
+const ONES_WORDS = [
+  '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+  'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+  'Seventeen', 'Eighteen', 'Nineteen',
+] as const
+
+const TENS_WORDS = [
+  '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety',
+] as const
+
+function twoDigitWords(n: number): string {
+  if (n < 20) return ONES_WORDS[n]
+  const tens = TENS_WORDS[Math.floor(n / 10)]
+  const ones = n % 10
+  return ones === 0 ? tens : `${tens} ${ONES_WORDS[ones]}`
+}
+
+/** 1–999 → "One Hundred Twenty Three". */
+function threeDigitWords(n: number): string {
+  const hundreds = Math.floor(n / 100)
+  const rest = n % 100
+  const parts: string[] = []
+  if (hundreds > 0) parts.push(`${ONES_WORDS[hundreds]} Hundred`)
+  if (rest > 0) parts.push(twoDigitWords(rest))
+  return parts.join(' ')
+}
+
+/** Indian system: crore groups recurse so amounts beyond 99 crore stay correct. */
+function indianRupeesWords(n: number): string {
+  if (n >= 10_000_000) {
+    const crores = indianRupeesWords(Math.floor(n / 10_000_000))
+    const rest = n % 10_000_000
+    return rest === 0 ? `${crores} Crore` : `${crores} Crore ${indianRupeesWords(rest)}`
+  }
+  const parts: string[] = []
+  const lakhs = Math.floor(n / 100_000)
+  if (lakhs > 0) parts.push(`${twoDigitWords(lakhs)} Lakh`)
+  const belowLakh = n % 100_000
+  const thousands = Math.floor(belowLakh / 1000)
+  if (thousands > 0) parts.push(`${twoDigitWords(thousands)} Thousand`)
+  const hundreds = belowLakh % 1000
+  if (hundreds > 0) parts.push(threeDigitWords(hundreds))
+  return parts.join(' ')
+}
+
+/**
+ * Spell out an integer paise amount the way invoices print it:
+ * `Rupees Twelve Thousand Three Hundred Forty Five and Forty Paise Only`.
+ * Fractional paise round HALF_UP before conversion.
+ */
+export function amountInWordsINR(paise: MoneyInput): string {
+  const total = toDecimal(paise).round()
+  if (total.isNegative()) {
+    throw new RangeError(`Amount in words requires a non-negative value: ${paise}`)
+  }
+
+  const rupees = total.dividedBy(PAISE_PER_RUPEE).floor().toNumber()
+  const paisePart = total.mod(PAISE_PER_RUPEE).toNumber()
+
+  const rupeeWords = rupees === 0 ? 'Zero' : indianRupeesWords(rupees)
+  const paiseSuffix =
+    paisePart > 0 ? ` and ${twoDigitWords(paisePart)} Paise` : ''
+  return `Rupees ${rupeeWords}${paiseSuffix} Only`
+}

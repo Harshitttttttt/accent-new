@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   Decimal,
   addMoney,
+  amountInWordsINR,
   calculateMargin,
   calculateTax,
   divideMoney,
@@ -107,5 +108,32 @@ describe('money.ts - Decimal.js & Paise monetary operations', () => {
       expect(parseINRToPaise('10,00,000')).toBe(100000000)
       expect(parseINRToPaise('')).toBe(0)
     })
+  })
+})
+
+describe('amountInWordsINR - Indian system amount in words', () => {
+  it('spells out zero, plain rupees, and paise-only amounts', () => {
+    expect(amountInWordsINR(0)).toBe('Rupees Zero Only')
+    expect(amountInWordsINR(1)).toBe('Rupees Zero and One Paise Only')
+    expect(amountInWordsINR(50)).toBe('Rupees Zero and Fifty Paise Only')
+    expect(amountInWordsINR(100)).toBe('Rupees One Only')
+  })
+
+  it('handles hundreds, thousands, and Indian lakh/crore grouping', () => {
+    expect(amountInWordsINR(12345)).toBe('Rupees One Hundred Twenty Three and Forty Five Paise Only')
+    expect(amountInWordsINR(1200_00)).toBe('Rupees One Thousand Two Hundred Only')
+    expect(amountInWordsINR(12_34_567_89)).toBe(
+      'Rupees Twelve Lakh Thirty Four Thousand Five Hundred Sixty Seven and Eighty Nine Paise Only',
+    )
+    // ₹500 crore = 500,000,000,000 paise — crore groups recurse past 99 crore.
+    expect(amountInWordsINR(500_000_000_000)).toBe('Rupees Five Hundred Crore Only')
+  })
+
+  it('rounds fractional paise HALF_UP instead of misreporting', () => {
+    expect(amountInWordsINR(150.6)).toBe('Rupees One and Fifty One Paise Only')
+  })
+
+  it('rejects negative amounts', () => {
+    expect(() => amountInWordsINR(-1)).toThrow(RangeError)
   })
 })

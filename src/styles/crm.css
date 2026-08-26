@@ -584,3 +584,27 @@ body {
   margin-top: 6px;
   flex-shrink: 0;
 }
+
+/* ── Print: client-facing quotation documents ─────────────────────────────
+   The document page marks chrome with .no-print; the shell hooks (.app-shell,
+   .app-main) let a long sheet flow across printed pages instead of clipping
+   to the viewport. */
+@media print {
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .app-shell {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .app-main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

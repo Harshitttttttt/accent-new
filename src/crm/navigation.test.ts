@@ -18,6 +18,7 @@ describe('CRM Navigation mapping', () => {
     expect(pageFromPath('/masters/software-master')).toBe('software-master')
     expect(pageFromPath('/reports/reports-employee')).toBe('reports-employee')
     expect(pageFromPath('/admin/quotations')).toBe('quotations')
+    expect(pageFromPath('/admin/quotations/q-123')).toBe('quotations')
     expect(pageFromPath('/admin/sale-invoices')).toBe('sale-invoices')
   })
 

@@ -163,16 +163,20 @@ function CrmShell() {
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
-      <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
-        <Sidebar
-          currentPage={currentPage}
-          onNavigate={navigate}
-          user={crmUser}
-          onLogout={handleLogout}
-        />
+      <div className="app-shell flex h-screen overflow-hidden bg-[var(--bg)]">
+        <div className="no-print">
+          <Sidebar
+            currentPage={currentPage}
+            onNavigate={navigate}
+            user={crmUser}
+            onLogout={handleLogout}
+          />
+        </div>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <TopBar currentPage={currentPage} onNavigate={navigate} user={crmUser} />
-          <main id="main-content" className="min-h-0 flex-1 overflow-hidden">
+          <div className="no-print">
+            <TopBar currentPage={currentPage} onNavigate={navigate} user={crmUser} />
+          </div>
+          <main id="main-content" className="app-main min-h-0 flex-1 overflow-hidden">
             <Outlet />
           </main>
         </div>

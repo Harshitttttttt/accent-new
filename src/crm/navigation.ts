@@ -18,6 +18,8 @@ export function pageFromPath(pathname: string): string {
   if (pathname.startsWith('/reports/')) {
     return decodeURIComponent(pathname.slice('/reports/'.length))
   }
+  // Static quotation routes shadow the generic /admin/$module page.
+  if (pathname.startsWith('/admin/quotations')) return 'quotations'
   if (pathname.startsWith('/admin/')) {
     return decodeURIComponent(pathname.slice('/admin/'.length))
   }
@@ -75,6 +77,7 @@ export function useCrmNavigation() {
       case 'reports-attendance':
         return router.navigate({ to: '/reports/$report', params: { report: page } })
       case 'quotations':
+        return router.navigate({ to: '/admin/quotations' })
       case 'purchase-orders':
       case 'purchase-invoices':
       case 'cash-voucher':
