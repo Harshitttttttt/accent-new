@@ -69,8 +69,9 @@ describe('QuotationPDF', () => {
     expect(screen.getByText(quotation.proposalNumber)).toBeInTheDocument()
 
     // Line amounts are formatted via formatPaise (paise-integer canonical).
-    expect(screen.getByText(formatPaise(100_000_00))).toBeInTheDocument()
-    expect(screen.getByText(formatPaise(50_000_00))).toBeInTheDocument()
+    // Rate and Amount columns duplicate when qty=1, so use getAllByText.
+    expect(screen.getAllByText(formatPaise(100_000_00)).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(formatPaise(50_000_00)).length).toBeGreaterThanOrEqual(1)
 
     // Totals rail — subtotal + GST @ 18% + total.
     expect(screen.getByText(formatPaise(totals.subtotalPaise))).toBeInTheDocument()
