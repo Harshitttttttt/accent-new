@@ -5,6 +5,7 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  redirect,
   useLocation,
   useRouter,
 } from '@tanstack/react-router'
@@ -18,6 +19,7 @@ import TopBar from '~/components/crm/TopBar'
 import appCss from '~/styles/app.css?url'
 import { useCrmNavigation, useCurrentCrmPage } from '~/crm/navigation'
 import { getCurrentUser, logoutUser } from '~/lib/auth.functions'
+import type { CurrentUserPayload } from '~/lib/auth.functions'
 import type { CrmUserView } from '~/lib/user-display'
 
 const queryClient = new QueryClient({
@@ -30,6 +32,32 @@ const queryClient = new QueryClient({
 })
 
 export const Route = createRootRoute({
+  // Best practice per TanStack Start docs (context7: /websites/tanstack_start):
+  // Use beforeLoad with a serverFn (getCurrentUser) to guard protected routes.
+  // Throw redirect({ to: '/login' }) when unauthenticated so child routes never
+  // render guest view. Public routes (/login, /register) bypass the check and
+  // return { user: null } for context merging.
+  beforeLoad: async ({ location }) => {
+    const publicPaths = ['/login', '/register']
+    if (publicPaths.includes(location.pathname)) {
+      return { user: null as CurrentUserPayload | null }
+    }
+
+    try {
+      const user = await getCurrentUser()
+      if (!user) {
+        throw redirect({ to: '/login' })
+      }
+      return { user }
+    } catch (err) {
+      // Preserve TanStack Router redirects (they are thrown objects with isRedirect)
+      if (err && typeof err === 'object' && err !== null && 'options' in err) {
+        throw err
+      }
+      // Fail-closed: any auth resolution error redirects to login
+      throw redirect({ to: '/login' })
+    }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -79,13 +107,21 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
   component: CrmShell,
   notFoundComponent: NotFound,
-  loader: async ({ location }) => {
+  loader: async ({ location, context }) => {
     // Standalone pages (login/register) render without session data.
     if (location.pathname === '/login' || location.pathname === '/register') {
       return { currentUser: null }
     }
 
+    // Prefer user from beforeLoad context to avoid double serverFn call.
+    // beforeLoad already validated auth and provided { user }.
+    const ctxUser = (context as { user?: CurrentUserPayload | null })?.user
+    if (ctxUser !== undefined) {
+      return { currentUser: ctxUser }
+    }
+
     try {
+      // Fallback if context not populated (e.g., direct loader invocation)
       // Default route staleTime is 0, so this re-runs on every navigation and
       // the chrome always reflects the live session. Swallowing failures here
       // keeps the shell renderable if the DB blips; pages surface their own errors.

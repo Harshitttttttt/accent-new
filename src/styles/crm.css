@@ -607,4 +607,13 @@ body {
     height: auto !important;
     overflow: visible !important;
   }
+  /* Pagination borders: ensure table fragments clone outer border and row borders */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  table { border-collapse: collapse !important; break-inside: auto; }
+  table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+  .quotation-pdf-shell { overflow: visible !important; }
+  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
+  .quotation-pdf-shell tbody tr:last-child td, .quotation-pdf-shell tfoot tr:last-child td { border-bottom: 1px solid #d1d5db !important; }
 }

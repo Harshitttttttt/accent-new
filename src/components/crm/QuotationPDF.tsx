@@ -55,12 +55,16 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
       <style>{`
         @media print {
           @page { size: A4; margin: 12mm 10mm 14mm 10mm; }
-          .quotation-pdf-shell { max-width: none !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+          .quotation-pdf-shell { max-width: none !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
           .no-print, .skip-link { display: none !important; }
           thead { display: table-header-group; }
           tfoot { display: table-footer-group; }
-          table { break-inside: auto; border-collapse: collapse; }
+          table { break-inside: auto; border-collapse: collapse !important; }
+          table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
           tr { break-inside: avoid; page-break-inside: avoid; }
+          /* Ensure outer border clones to each page fragment and last row bottom border renders */
+          .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
+          .quotation-pdf-shell tbody tr:last-child td, .quotation-pdf-shell tfoot tr:last-child td { border-bottom: 1px solid #d1d5db !important; }
         }
       `}</style>
 
