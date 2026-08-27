@@ -607,10 +607,10 @@ body {
     height: auto !important;
     overflow: visible !important;
   }
-  /* Pagination borders: ensure table fragments clone outer border and row borders */
+  /* Pagination borders: separate + spacing 0 clones outer border per fragment (collapse drops bottom edge) */
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
-  table { border-collapse: collapse !important; break-inside: auto; }
+  table { border-collapse: separate !important; border-spacing: 0 !important; break-inside: auto; }
   table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
   tr { break-inside: avoid; page-break-inside: avoid; }
   .quotation-pdf-shell { overflow: visible !important; }

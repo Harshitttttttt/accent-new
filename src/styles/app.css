@@ -76,10 +76,10 @@ textarea {
     size: A4;
     margin: 12mm 10mm 14mm 10mm;
   }
-  /* Global pagination border fix — cloned borders per fragment, avoid abrupt cut */
+  /* Global pagination border fix — use separate + spacing 0 so outer border clones per page fragment (collapse drops bottom edge) */
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
-  table { border-collapse: collapse !important; break-inside: auto; }
+  table { border-collapse: separate !important; border-spacing: 0 !important; break-inside: auto; }
   table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
   tr { break-inside: avoid; page-break-inside: avoid; }
   .quotation-pdf-shell { overflow: visible !important; }
