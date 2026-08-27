@@ -78,6 +78,8 @@ export function useCrmNavigation() {
         return router.navigate({ to: '/reports/$report', params: { report: page } })
       case 'quotations':
         return router.navigate({ to: '/admin/quotations' })
+      case 'quotation-outgoing':
+        return router.navigate({ to: '/admin/quotation-outgoing' })
       case 'purchase-orders':
       case 'purchase-invoices':
       case 'cash-voucher':

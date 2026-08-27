@@ -78,6 +78,14 @@ export const milestoneStatusEnum = pgEnum('milestone_status', ['pending', 'in_pr
 
 export const riskSeverityEnum = pgEnum('risk_severity', ['low', 'medium', 'high'])
 
+export const vendorQuotationStatusEnum = pgEnum('vendor_quotation_status', [
+  'draft',
+  'sent',
+  'approved',
+  'rejected',
+  'expired',
+])
+
 export const riskStatusEnum = pgEnum('risk_status', ['open', 'mitigated', 'closed'])
 
 export const assignmentStatusEnum = pgEnum('assignment_status', [
