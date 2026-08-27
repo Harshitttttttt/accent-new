@@ -607,13 +607,13 @@ body {
     height: auto !important;
     overflow: visible !important;
   }
-  /* Pagination borders: separate + spacing 0 clones outer border per fragment (collapse drops bottom edge) */
+  /* Pagination borders: collapse + outline clones outer border per fragment */
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
-  table { border-collapse: separate !important; border-spacing: 0 !important; break-inside: auto; }
+  table { border-collapse: collapse !important; break-inside: auto; }
   table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-  tr { break-inside: avoid; page-break-inside: avoid; }
+  tr { break-inside: auto; page-break-inside: auto; }
   .quotation-pdf-shell { overflow: visible !important; }
-  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
-  .quotation-pdf-shell tbody tr:last-child td, .quotation-pdf-shell tfoot tr:last-child td { border-bottom: 1px solid #d1d5db !important; }
+  /* outline clones per fragment unlike border with collapse; keeps bottom edge on every page */
+  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; outline: 1px solid #d1d5db !important; outline-offset: -1px; }
 }

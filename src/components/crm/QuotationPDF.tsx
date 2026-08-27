@@ -59,12 +59,11 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
           .no-print, .skip-link { display: none !important; }
           thead { display: table-header-group; }
           tfoot { display: table-footer-group; }
-          table { break-inside: auto; border-collapse: separate !important; border-spacing: 0 !important; }
+          table { break-inside: auto; border-collapse: collapse !important; }
           table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-          tr { break-inside: avoid; page-break-inside: avoid; }
-          /* Ensure outer border clones to each page fragment and last row bottom border renders (separate fixes collapse truncation) */
-          .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
-          .quotation-pdf-shell tbody tr:last-child td, .quotation-pdf-shell tfoot tr:last-child td { border-bottom: 1px solid #d1d5db !important; }
+          tr { break-inside: auto; page-break-inside: auto; }
+          /* outline clones per fragment where border+collapse fails — keeps bottom edge on every page */
+          .quotation-pdf-shell table { border: 1px solid #d1d5db !important; outline: 1px solid #d1d5db !important; outline-offset: -1px; }
         }
       `}</style>
 
@@ -613,7 +612,7 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
             </thead>
             <tbody>
               {annexureRows.map((r) => (
-                <tr key={r.no} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' } as React.CSSProperties}>
+                <tr key={r.no}>
                   <td
                     style={{
                       padding: '7px 8px',
