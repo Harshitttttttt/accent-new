@@ -76,13 +76,15 @@ textarea {
     size: A4;
     margin: 12mm 10mm 14mm 10mm;
   }
-  /* Print pagination: collapse with outline clones outer border per fragment (border with collapse drops bottom edge) */
+  /* Print pagination — verified in headless Chromium PDF output:
+     border-collapse:collapse drops the table's outer border on page fragments;
+     separate + border-spacing:0 draws it on every fragment. Rows must stay
+     break-inside:auto so tall annexure rows split instead of leaving gaps. */
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
-  table { border-collapse: collapse !important; break-inside: auto; }
+  table { border-collapse: separate !important; border-spacing: 0 !important; break-inside: auto; }
   table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
   tr { break-inside: auto; page-break-inside: auto; }
   .quotation-pdf-shell { overflow: visible !important; }
-  /* outline clones per fragment unlike border with collapse; keeps 1px #d1d5db bottom edge on every page */
-  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; outline: 1px solid #d1d5db !important; outline-offset: -1px; }
+  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
 }

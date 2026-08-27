@@ -59,11 +59,12 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
           .no-print, .skip-link { display: none !important; }
           thead { display: table-header-group; }
           tfoot { display: table-footer-group; }
-          table { break-inside: auto; border-collapse: collapse !important; }
+          /* collapse drops the outer border on page fragments in Chromium print;
+             separate + spacing 0 draws it on every fragment (verified in PDF output) */
+          table { break-inside: auto; border-collapse: separate !important; border-spacing: 0 !important; }
           table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
           tr { break-inside: auto; page-break-inside: auto; }
-          /* outline clones per fragment where border+collapse fails — keeps bottom edge on every page */
-          .quotation-pdf-shell table { border: 1px solid #d1d5db !important; outline: 1px solid #d1d5db !important; outline-offset: -1px; }
+          .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
         }
       `}</style>
 
