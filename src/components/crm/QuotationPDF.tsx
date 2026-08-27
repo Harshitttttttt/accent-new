@@ -11,9 +11,7 @@ import type { ProposalDetail } from '~/lib/proposals'
 
 export type QuotationPDFProps = {
   quotation: ProposalDetail
-  /** Override validity text (e.g. formatted `validUntil`); falls back to `quotation.validityDays` math. */
   validUntil?: string | null
-  /** Optional company header override — e.g. loaded from `companiesTable` — falls back to the static Accent letterhead. */
   displayCompany?: { name: string; address?: string | null; gstin?: string | null }
 }
 
@@ -22,66 +20,41 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const sectionTitleStyle: React.CSSProperties = {
-  margin: '0 0 6px',
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: 0.6,
-  color: 'var(--text-muted)',
-}
-
-const metaListStyle: React.CSSProperties = { margin: 0 }
-const metaRowStyle: React.CSSProperties = { display: 'flex', gap: 8, padding: '2px 0' }
-const metaLabelStyle: React.CSSProperties = { minWidth: 84, fontSize: 12.5, color: 'var(--text-muted)' }
-const metaValueStyle: React.CSSProperties = { margin: 0, fontSize: 12.5, fontWeight: 600 }
-const totalValueStyle: React.CSSProperties = { margin: 0 }
-
-function lineCellStyle(alignRight: boolean): React.CSSProperties {
-  return {
-    padding: '8px 10px',
-    verticalAlign: 'top',
-    textAlign: alignRight ? 'right' : 'left',
-    fontVariantNumeric: 'tabular-nums',
-  }
-}
-
-/**
- * Professional quotation print surface — extracted from `src/crm/pages/QuotationDocument.tsx`
- * into a standalone presentational component so that:
- * - the print route composes it (no visual regression)
- * - a future `@react-pdf/renderer` or `jspdf` wrapper can reuse the same sections
- * - it is unit-testable against paise money helpers in isolation.
- *
- * All INR strings go through `formatPaise` / `amountInWordsINR` (paise-integer canonical).
- * GST is not recomputed here — callers pass `totals` from `computeQuotationTotals`.
- *
- * Visual template: Anvil HTML Invoice (brand rule + meta grid + tabular lines + totals rail)
- * — see `.hermes/plans/quotation-redesign.md` for the stolen references.
- */
+// Old app reference: src/app/admin/quotation/[id]/view/page.jsx — bordered tables with gray-50 headers, 14 annexure rows
 export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCompany }: QuotationPDFProps) {
   const totals = computeQuotationTotals({ lines: quotation.quotationLines, valuePaise: quotation.valuePaise })
   const computedValidUntil =
     validUntilProp !== undefined
       ? validUntilProp
       : quotation.validityDays
-        ? formatDate(
-            new Date(new Date(quotation.createdAt).getTime() + quotation.validityDays * 86_400_000).toISOString(),
-          )
+        ? formatDate(new Date(new Date(quotation.createdAt).getTime() + quotation.validityDays * 86_400_000).toISOString())
         : null
   const hasLines = quotation.quotationLines.length > 0
-
-  const letterheadName = displayCompany?.name ?? 'Accent Techno Solutions Pvt Ltd'
+  const letterheadName = displayCompany?.name ?? 'Accent Techno Solutions Private Limited'
   const letterheadAddress = displayCompany?.address ?? null
   const letterheadGstin = displayCompany?.gstin ?? null
 
+  const annexureRows: { no: string; title: string; content: string | string[] }[] = [
+    { no: '1', title: 'Scope of Work', content: htmlToPlainText(quotation.scopeOfWork ?? '') || 'As per enquiry and discussion.' },
+    { no: '2', title: 'Input Documents', content: quotation.inputDocuments.length ? quotation.inputDocuments : 'As provided by client.' },
+    { no: '3', title: 'Deliverables', content: quotation.deliverables.length ? quotation.deliverables : 'Detailed engineering drawings and documents as per scope.' },
+    { no: '4', title: 'Software', content: quotation.software.length ? quotation.software.map((s) => s.notes ? `${s.name} — ${s.notes}` : s.name) : 'As per project requirement.' },
+    { no: '5', title: 'Duration', content: quotation.plannedStartDate || quotation.plannedEndDate ? `From ${formatDate(quotation.plannedStartDate)} to ${formatDate(quotation.plannedEndDate)}` : 'As mutually agreed.' },
+    { no: '6', title: 'Site Visit', content: quotation.siteVisits > 0 ? `${quotation.siteVisits} visit(s)${quotation.siteVisitNotes ? ` — ${quotation.siteVisitNotes}` : ''}` : 'No site visit included.' },
+    { no: '7', title: 'Quotation Validity', content: computedValidUntil ? `Valid until ${computedValidUntil}` : `Valid for ${quotation.validityDays ?? 30} days from date of quotation.` },
+    { no: '8', title: 'Mode of Delivery', content: quotation.modeOfDelivery ?? 'Offshore at ATS office / as agreed.' },
+    { no: '9', title: 'Revisions', content: `${quotation.revisionsIncluded} revision(s) included.` },
+    { no: '10', title: 'Exclusions', content: quotation.exclusions.length ? quotation.exclusions : 'Anything not expressly mentioned in scope.' },
+    { no: '11', title: 'Billing & Payment Terms', content: quotation.paymentTerms ?? 'As per standard terms.' },
+    { no: '12', title: 'Confidentiality & Other Terms', content: quotation.otherTerms ?? 'As per standard other terms.' },
+  ]
+
   return (
     <>
-      {/* Print-only resets — colocated so the component is self-contained on any route. */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 14mm 12mm 16mm 12mm; }
-          .quotation-pdf-shell { max-width: none !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+          @page { size: A4; margin: 12mm 10mm 14mm 10mm; }
+          .quotation-pdf-shell { max-width: none !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; }
           .no-print { display: none !important; }
           thead { display: table-header-group; }
           tfoot { display: table-footer-group; }
@@ -89,243 +62,121 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
         }
       `}</style>
 
-      <article
-        aria-label={`Quotation ${quotation.proposalNumber}`}
-        className="quotation-pdf-shell"
-        style={{
-          maxWidth: 860,
-          margin: '24px auto 48px',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-          padding: '40px 48px',
-        }}
-      >
-        {/* ── Letterhead ── */}
-        <header style={{ borderBottom: '2px solid var(--brand-primary)', paddingBottom: 16, marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--brand-primary)' }}>
-                {letterheadName}
-              </h1>
-              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Engineering Consultants</p>
-              {letterheadAddress ? (
-                <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--text-secondary)', maxWidth: 360 }}>
-                  {letterheadAddress}
-                </p>
-              ) : null}
-              {letterheadGstin ? (
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-secondary)' }}>GSTIN: {letterheadGstin}</p>
-              ) : null}
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: 1 }}>QUOTATION</div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                {quotation.proposalNumber}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* ── Meta + client ── */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 20,
-            marginBottom: 24,
-          }}
-        >
-          <section aria-label="Quotation details">
-            <h2 style={sectionTitleStyle}>Quotation details</h2>
-            <dl style={metaListStyle}>
-              <div style={metaRowStyle}>
-                <dt style={metaLabelStyle}>Date</dt>
-                <dd style={metaValueStyle}>{formatDate(quotation.createdAt)}</dd>
-              </div>
-              <div style={metaRowStyle}>
-                <dt style={metaLabelStyle}>Valid until</dt>
-                <dd style={metaValueStyle}>{computedValidUntil ?? '—'}</dd>
-              </div>
-              <div style={metaRowStyle}>
-                <dt style={metaLabelStyle}>Status</dt>
-                <dd style={metaValueStyle}>
-                  <span className={`badge ${QUOTATION_STATUS_BADGES[quotation.status]}`} style={{ fontSize: 9.5 }}>
-                    {QUOTATION_STATUS_LABELS[quotation.status]}
-                  </span>
-                </dd>
-              </div>
-            </dl>
-          </section>
-          <section aria-label="Client details">
-            <h2 style={sectionTitleStyle}>Prepared for</h2>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{quotation.companyName}</p>
-            {quotation.contactName ? (
-              <p style={{ margin: '2px 0 0', fontSize: 12.5 }}>
-                Kind attn: {quotation.contactName}
-                {quotation.designation ? `, ${quotation.designation}` : ''}
-              </p>
-            ) : null}
-            {(quotation.city || quotation.siteLocation) && (
-              <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                {[quotation.siteLocation, quotation.city].filter(Boolean).join(', ')}
-              </p>
-            )}
-            {quotation.contactEmail ? (
-              <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>{quotation.contactEmail}</p>
-            ) : null}
-          </section>
+      <article className="quotation-pdf-shell" style={{ maxWidth: 860, margin: '24px auto 40px', background: '#fff', border: '1px solid #d1d5db', borderRadius: 8, overflow: 'hidden' }}>
+        {/* Purple letterhead like old: bg-[#64126D] */}
+        <div style={{ background: '#64126D', color: '#fff', padding: '14px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{letterheadName}</div>
+          <div style={{ fontSize: 11, opacity: 0.9 }}>Engineering & Consultancy Services</div>
+          {letterheadAddress ? <div style={{ fontSize: 10, opacity: 0.85, marginTop: 4 }}>{letterheadAddress}</div> : null}
+          {letterheadGstin ? <div style={{ fontSize: 10, opacity: 0.85 }}>GSTIN: {letterheadGstin}</div> : null}
         </div>
 
-        {/* ── Subject & scope ── */}
-        <section style={{ marginBottom: 24 }} aria-label="Subject and scope of work">
-          <h2 style={sectionTitleStyle}>Subject</h2>
-          <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600 }}>{quotation.title}</p>
-          {quotation.scopeOfWork ? (
-            <>
-              <h2 style={sectionTitleStyle}>Scope of work</h2>
-              <p style={{ margin: 0, fontSize: 12.5, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
-                {htmlToPlainText(quotation.scopeOfWork)}
-              </p>
-            </>
-          ) : null}
-        </section>
-
-        {/* ── Line items ── */}
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontSize: 12.5,
-            marginBottom: 16,
-          }}
-        >
-          <caption className="sr-only">Itemized amounts for {quotation.proposalNumber}</caption>
-          <thead>
-            <tr style={{ background: 'var(--surface-secondary)', borderBottom: '1px solid var(--border)' }}>
-              {['Sr', 'Description', 'Qty', 'Unit price', 'Amount'].map((heading, i) => (
-                <th
-                  key={heading}
-                  scope="col"
-                  style={{
-                    textAlign: i >= 2 ? 'right' : 'left',
-                    padding: '8px 10px',
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.4,
-                  }}
-                >
-                  {heading}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {hasLines ? (
-              quotation.quotationLines.map((line, index) => (
-                <tr key={line.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={lineCellStyle(index >= 2)}>{index + 1}</td>
-                  <td style={lineCellStyle(false)}>{line.description}</td>
-                  <td style={lineCellStyle(true)}>{line.quantity}</td>
-                  <td style={lineCellStyle(true)}>{formatPaise(line.unitPricePaise)}</td>
-                  <td style={{ ...lineCellStyle(true), fontWeight: 700 }}>{formatPaise(line.amountPaise)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <td style={lineCellStyle(false)}>—</td>
-                <td style={lineCellStyle(false)}>Quoted as a lump sum — itemized lines are being prepared.</td>
-                <td style={lineCellStyle(true)}>1</td>
-                <td style={lineCellStyle(true)}>{formatPaise(quotation.valuePaise ?? 0)}</td>
-                <td style={{ ...lineCellStyle(true), fontWeight: 700 }}>{formatPaise(quotation.valuePaise ?? 0)}</td>
+        <div style={{ padding: 18 }}>
+          {/* Top table: To + Quotation Details — old app flex as table */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12, fontSize: 12 }}>
+            <tbody>
+              <tr>
+                <td style={{ width: '60%', borderRight: '1px solid #d1d5db', verticalAlign: 'top', padding: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      <tr><td style={{ padding: '8px 10px', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>To</td></tr>
+                      <tr><td style={{ padding: '10px', fontWeight: 700 }}>{quotation.companyName}</td></tr>
+                      <tr><td style={{ padding: '0 10px 10px', color: '#4b5563', whiteSpace: 'pre-line' }}>{[quotation.siteLocation, quotation.city].filter(Boolean).join(', ')}</td></tr>
+                      {quotation.contactName ? <tr><td style={{ padding: '0 10px 2px', fontSize: 11 }}>Kind Attn: <b>{quotation.contactName}</b>{quotation.designation ? `, ${quotation.designation}` : ''}</td></tr> : null}
+                      {quotation.contactEmail ? <tr><td style={{ padding: '0 10px 8px', fontSize: 11, color: '#6b7280' }}>{quotation.contactEmail}</td></tr> : null}
+                    </tbody>
+                  </table>
+                </td>
+                <td style={{ width: '40%', verticalAlign: 'top' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                    <tbody>
+                      <tr><td style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', background: '#f9fafb', fontWeight: 700, width: '50%' }}>Quotation No.</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', fontWeight: 600 }}>{quotation.proposalNumber}</td></tr>
+                      <tr><td style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', background: '#f9fafb', fontWeight: 700 }}>Date</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db' }}>{formatDate(quotation.createdAt)}</td></tr>
+                      <tr><td style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', background: '#f9fafb', fontWeight: 700 }}>Valid until</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db' }}>{computedValidUntil ?? '—'}</td></tr>
+                      <tr><td style={{ padding: '6px 8px', borderRight: '1px solid #d1d5db', background: '#f9fafb', fontWeight: 700 }}>Status</td><td style={{ padding: '6px 8px' }}><span className={`badge ${QUOTATION_STATUS_BADGES[quotation.status]}`} style={{ fontSize: 10 }}>{QUOTATION_STATUS_LABELS[quotation.status]}</span></td></tr>
+                    </tbody>
+                  </table>
+                </td>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
 
-        {/* ── Totals rail ── */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-          <dl style={{ minWidth: 280, fontSize: 13 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-              <dt style={{ color: 'var(--text-secondary)' }}>Subtotal</dt>
-              <dd style={{ ...totalValueStyle, fontVariantNumeric: 'tabular-nums' }}>
-                {formatPaise(totals.subtotalPaise)}
-              </dd>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-              <dt style={{ color: 'var(--text-secondary)' }}>GST @ {QUOTATION_GST_RATE_PCT}%</dt>
-              <dd style={{ ...totalValueStyle, fontVariantNumeric: 'tabular-nums' }}>{formatPaise(totals.gstPaise)}</dd>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0 4px',
-                borderTop: '1px solid var(--border)',
-                fontSize: 14.5,
-              }}
-            >
-              <dt style={{ fontWeight: 800 }}>Total</dt>
-              <dd style={{ ...totalValueStyle, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
-                {formatPaise(totals.totalPaise)}
-              </dd>
-            </div>
-          </dl>
+          {/* Subject */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
+            <tbody>
+              <tr><td style={{ padding: '6px 10px', background: '#f9fafb', fontWeight: 700, fontSize: 11, borderBottom: '1px solid #d1d5db' }}>SUBJECT: {quotation.title}</td></tr>
+              {quotation.scopeOfWork ? <tr><td style={{ padding: '8px 10px', fontSize: 11, color: '#374151', whiteSpace: 'pre-wrap' }}>{htmlToPlainText(quotation.scopeOfWork)}</td></tr> : null}
+            </tbody>
+          </table>
+
+          {/* Scope items — bordered table like old */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12, fontSize: 11 }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                <th style={{ padding: '7px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', width: 40, textAlign: 'center', fontSize: 10 }}>Sr.</th>
+                <th style={{ padding: '7px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', textAlign: 'left', fontSize: 10 }}>Scope of Work</th>
+                <th style={{ padding: '7px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', width: 60, textAlign: 'center', fontSize: 10 }}>Qty.</th>
+                <th style={{ padding: '7px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', width: 90, textAlign: 'right', fontSize: 10 }}>Rate</th>
+                <th style={{ padding: '7px 8px', borderBottom: '1px solid #d1d5db', width: 100, textAlign: 'right', fontSize: 10 }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hasLines ? quotation.quotationLines.map((l, i) => (
+                <tr key={l.id}>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'center' }}>{i + 1}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', whiteSpace: 'pre-wrap' }}>{l.description}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'center' }}>{l.quantity}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatPaise(l.unitPricePaise)}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatPaise(l.amountPaise)}</td>
+                </tr>
+              )) : (
+                <tr><td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'center' }}>1</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db' }}>Quoted as a lump sum — itemized lines are being prepared.</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'center' }}>1</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'right' }}>{formatPaise(quotation.valuePaise ?? 0)}</td><td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: 700 }}>{formatPaise(quotation.valuePaise ?? 0)}</td></tr>
+              )}
+            </tbody>
+          </table>
+
+          {/* Totals + Amount in words — old app totals table */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12, fontSize: 11 }}>
+            <tbody>
+              <tr><td style={{ padding: '6px 10px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', background: '#f9fafb', textAlign: 'right', fontWeight: 600, width: '70%' }}>Subtotal</td><td style={{ padding: '6px 10px', borderBottom: '1px solid #d1d5db', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatPaise(totals.subtotalPaise)}</td></tr>
+              <tr><td style={{ padding: '6px 10px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', background: '#f9fafb', textAlign: 'right', fontWeight: 600 }}>GST @ {QUOTATION_GST_RATE_PCT}%</td><td style={{ padding: '6px 10px', borderBottom: '1px solid #d1d5db', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatPaise(totals.gstPaise)}</td></tr>
+              <tr style={{ background: '#faf5ff' }}><td style={{ padding: '7px 10px', borderRight: '1px solid #d1d5db', textAlign: 'right', fontWeight: 800 }}>Total</td><td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: 800, color: '#64126D', fontVariantNumeric: 'tabular-nums' }}>{formatPaise(totals.totalPaise)}</td></tr>
+              <tr><td colSpan={2} style={{ padding: '6px 10px', borderTop: '1px solid #d1d5db', fontStyle: 'italic', color: '#6b7280', fontSize: 10 }}>{amountInWordsINR(totals.totalPaise)}</td></tr>
+            </tbody>
+          </table>
+
+          {/* Annexure - I — full table like old app */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', fontSize: 11 }}>
+            <thead>
+              <tr><th colSpan={3} style={{ padding: '7px 10px', background: '#faf5ff', borderBottom: '1px solid #d1d5db', textAlign: 'center', fontWeight: 800, color: '#64126D' }}>ANNEXURE - I</th></tr>
+              <tr style={{ background: '#f9fafb' }}>
+                <th style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', width: 36, fontSize: 10 }}>No.</th>
+                <th style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', width: 140, fontSize: 10, textAlign: 'left' }}>Particulars</th>
+                <th style={{ padding: '6px 8px', borderBottom: '1px solid #d1d5db', fontSize: 10, textAlign: 'left' }}>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {annexureRows.map((r) => (
+                <tr key={r.no}>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', textAlign: 'center', fontWeight: 600 }}>{r.no})</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #d1d5db', fontWeight: 700 }}>{r.title}</td>
+                  <td style={{ padding: '6px 8px', borderBottom: '1px solid #e5e7eb', whiteSpace: 'pre-wrap' }}>
+                    {Array.isArray(r.content) ? (
+                      <ul style={{ margin: 0, paddingLeft: 16 }}>{r.content.map((c, i) => <li key={i} style={{ marginBottom: 2 }}>{c}</li>)}</ul>
+                    ) : r.content}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ marginTop: 10, fontSize: 9, color: '#9ca3af', textAlign: 'center', borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
+            This is a computer-generated quotation — valid until {computedValidUntil ?? 'as above'} · Accent Techno Solutions Pvt Ltd
+          </div>
         </div>
-
-        {/* ── Amount in words ── */}
-        <p style={{ margin: '0 0 28px', fontSize: 12.5, fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-          {amountInWordsINR(totals.totalPaise)}
-        </p>
-
-        {/* ── Terms ── */}
-        {quotation.paymentTerms ? (
-          <section style={{ marginBottom: 20 }} aria-label="Payment terms">
-            <h2 style={sectionTitleStyle}>Payment terms</h2>
-            <p style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
-              {quotation.paymentTerms}
-            </p>
-          </section>
-        ) : null}
-        {quotation.otherTerms ? (
-          <section aria-label="Other terms and conditions">
-            <h2 style={sectionTitleStyle}>Other terms &amp; conditions</h2>
-            <p style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
-              {quotation.otherTerms}
-            </p>
-          </section>
-        ) : null}
-
-        {/* ── Footer — print and screen ── */}
-        <footer
-          style={{
-            marginTop: 28,
-            paddingTop: 12,
-            borderTop: '1px solid var(--border-subtle)',
-            fontSize: 10.5,
-            color: 'var(--text-muted)',
-          }}
-        >
-          <p style={{ margin: 0 }}>
-            Quoted prices are valid until {computedValidUntil ?? 'the date shown above'} · GST {QUOTATION_GST_RATE_PCT}%
-            extra as applicable · This is a computer-generated document.
-          </p>
-          <p style={{ margin: '4px 0 0' }}>Accent Techno Solutions Pvt Ltd · Engineering Consultants</p>
-        </footer>
       </article>
     </>
   )
 }
 
-/**
- * Page-level wrapper kept for backwards-compat with `src/crm/pages/QuotationDocument.tsx`'s
- * previous inline rendering — now delegates to `QuotationPDF`. Exported so tests can
- * import the isolated presentational component without the page's auth/empty branching.
- */
-export function QuotationDocumentPageLegacyBridge({ initialData }: { initialData: QuotationDocumentPayload }) {
-  // This bridge is intentionally not used at runtime; it documents the old render path.
-  void initialData
-  return null
-}
+export function QuotationDocumentPageLegacyBridge({ initialData }: { initialData: QuotationDocumentPayload }) { void initialData; return null }
