@@ -1,0 +1,1 @@
+ALTER TABLE "proposal_quotation_lines" RENAME TO "client_quotation_lines";

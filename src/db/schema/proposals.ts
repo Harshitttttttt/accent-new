@@ -141,7 +141,7 @@ export const proposalExclusionsTable = pgTable(
 )
 
 export const clientQuotationLinesTable = pgTable(
-  'proposal_quotation_lines',
+  'client_quotation_lines',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     proposalId: uuid('proposal_id')
@@ -218,5 +218,5 @@ export type ProposalFollowUpRecord = typeof proposalFollowUpsTable.$inferSelect
 export type ProposalCommentRecord = typeof proposalCommentsTable.$inferSelect
 
 // ── Backward compat: old variable name → new client name ──
-/** @deprecated use clientQuotationLinesTable */
-export const proposalQuotationLinesTable = clientQuotationLinesTable
+// TEMP removed for drizzle generate — deprecated alias
+// export const proposalQuotationLinesTable = clientQuotationLinesTable
