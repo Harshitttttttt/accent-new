@@ -1,27 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import QuotationDocumentPage from '~/crm/pages/QuotationDocument'
-import { getQuotationDocumentData } from '~/lib/quotations.functions'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/admin/quotations/$quotationId')({
   ssr: true,
-  loader: ({ params }) => getQuotationDocumentData({ data: { id: params.quotationId } }),
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: loaderData?.quotation
-          ? `Quotation ${loaderData.quotation.proposalNumber} | AccentCRM`
-          : 'Quotation | AccentCRM',
-      },
-    ],
-  }),
-  component: QuotationDocumentRoute,
+  loader: ({ params }) => {
+    throw redirect({ to: '/admin/client-quotations/$quotationId', params: { quotationId: params.quotationId } })
+  },
 })
-
-function QuotationDocumentRoute() {
-  const initialData = Route.useLoaderData()
-  return (
-    <div className="h-full" data-route="admin-quotation-document">
-      <QuotationDocumentPage initialData={initialData} />
-    </div>
-  )
-}

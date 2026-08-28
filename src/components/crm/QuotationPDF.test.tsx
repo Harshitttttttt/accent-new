@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QuotationPDF } from './QuotationPDF'
 import type { ProposalDetail } from '~/lib/proposals'
-import { computeQuotationTotals } from '~/lib/quotations'
+import { computeClientQuotationTotals } from '~/lib/client-quotations'
 import { formatPaise, amountInWordsINR } from '~/lib/money'
 
 function makeQuotation(overrides: Partial<ProposalDetail> = {}): ProposalDetail {
@@ -60,7 +60,7 @@ function makeQuotation(overrides: Partial<ProposalDetail> = {}): ProposalDetail 
 describe('QuotationPDF', () => {
   it('renders header, table amounts, totals and amount-in-words via paise helpers', () => {
     const quotation = makeQuotation()
-    const totals = computeQuotationTotals({ lines: quotation.quotationLines, valuePaise: quotation.valuePaise })
+    const totals = computeClientQuotationTotals({ lines: quotation.quotationLines, valuePaise: quotation.valuePaise })
 
     render(<QuotationPDF quotation={quotation} />)
 

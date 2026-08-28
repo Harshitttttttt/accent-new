@@ -4,7 +4,7 @@ import {
   computeClientQuotationTotals,
   htmlToPlainText,
   CLIENT_QUOTATION_GST_RATE_PCT,
-} from './quotations'
+} from './client-quotations'
 
 describe('computeClientQuotationStats', () => {
   it('rolls up counts and values across the pipeline', () => {

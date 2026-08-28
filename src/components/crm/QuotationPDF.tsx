@@ -1,12 +1,12 @@
 import { amountInWordsINR, formatPaise } from '~/lib/money'
 import {
-  computeQuotationTotals,
+  computeClientQuotationTotals,
   htmlToPlainText,
-  QUOTATION_GST_RATE_PCT,
-  QUOTATION_STATUS_BADGES,
-  QUOTATION_STATUS_LABELS,
-  type QuotationDocumentPayload,
-} from '~/lib/quotations'
+  CLIENT_QUOTATION_GST_RATE_PCT,
+  CLIENT_QUOTATION_STATUS_BADGES,
+  CLIENT_QUOTATION_STATUS_LABELS,
+  type ClientQuotationDocumentPayload,
+} from '~/lib/client-quotations'
 import type { ProposalDetail } from '~/lib/proposals'
 
 export type QuotationPDFProps = {
@@ -23,7 +23,7 @@ function formatDate(value: string | null): string {
 // Old app reference: src/app/admin/quotation/[id]/view/page.jsx — bordered tables with gray-50 headers, 14 annexure rows
 // Monochrome print: only #111827 (black), #d1d5db/#e5e7eb/#f9fafb/#6b7280 (greys), #fff (white). Inter font.
 export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCompany }: QuotationPDFProps) {
-  const totals = computeQuotationTotals({ lines: quotation.quotationLines, valuePaise: quotation.valuePaise })
+  const totals = computeClientQuotationTotals({ lines: quotation.quotationLines, valuePaise: quotation.valuePaise })
   const computedValidUntil =
     validUntilProp !== undefined
       ? validUntilProp
@@ -212,8 +212,8 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
                           Status
                         </td>
                         <td style={{ padding: '7px 8px', color: '#111827' }}>
-                          <span className={`badge ${QUOTATION_STATUS_BADGES[quotation.status]}`} style={{ fontSize: 10 }}>
-                            {QUOTATION_STATUS_LABELS[quotation.status]}
+                          <span className={`badge ${CLIENT_QUOTATION_STATUS_BADGES[quotation.status]}`} style={{ fontSize: 10 }}>
+                            {CLIENT_QUOTATION_STATUS_LABELS[quotation.status]}
                           </span>
                         </td>
                       </tr>
@@ -482,7 +482,7 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
                     color: '#111827',
                   }}
                 >
-                  GST @ {QUOTATION_GST_RATE_PCT}%
+                  GST @ {CLIENT_QUOTATION_GST_RATE_PCT}%
                 </td>
                 <td style={{ padding: '7px 10px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#111827' }}>
                   {formatPaise(totals.gstPaise)}
@@ -676,4 +676,4 @@ export function QuotationPDF({ quotation, validUntil: validUntilProp, displayCom
   )
 }
 
-export function QuotationDocumentPageLegacyBridge({ initialData }: { initialData: QuotationDocumentPayload }) { void initialData; return null }
+export function QuotationDocumentPageLegacyBridge({ initialData }: { initialData: ClientQuotationDocumentPayload }) { void initialData; return null }

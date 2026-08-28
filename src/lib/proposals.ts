@@ -192,7 +192,7 @@ export type ProposalSoftwareLine = {
   notes: string | null
 }
 
-export type ProposalQuotationLine = {
+export type ClientQuotationLine = {
   id: string
   description: string
   quantity: number
@@ -347,3 +347,6 @@ export function quotationLinesTotalPaise(
 ): number {
   return lines.reduce((total, line) => total + line.quantity * line.unitPricePaise, 0)
 }
+
+/** @deprecated use ClientQuotationLine */
+export type ProposalQuotationLine = ClientQuotationLine

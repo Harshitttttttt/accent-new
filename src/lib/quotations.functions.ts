@@ -1,17 +1,6 @@
-import { createServerFn } from '@tanstack/react-start'
-import { getRequestHeader, setResponseHeader } from '@tanstack/react-start/server'
-import { getQuotationDocumentForCookie, getQuotationsPageDataForCookie } from './quotations.server'
-import { proposalIdSchema } from './proposals'
-
-// ── Reads ────────────────────────────────────────────────────────────────
-export const getQuotationsPageData = createServerFn({ method: 'GET' }).handler(async () => {
-  setResponseHeader('Cache-Control', 'private, no-store')
-  return getQuotationsPageDataForCookie(getRequestHeader('cookie'))
-})
-
-export const getQuotationDocumentData = createServerFn({ method: 'GET' })
-  .validator(proposalIdSchema)
-  .handler(async ({ data }) => {
-    setResponseHeader('Cache-Control', 'private, no-store')
-    return getQuotationDocumentForCookie(data.id, getRequestHeader('cookie'))
-  })
+// @deprecated — use '~/lib/client-quotations.functions' instead.
+export * from './client-quotations.functions'
+import { getClientQuotationsPageData, getClientQuotationDocumentData } from './client-quotations.functions'
+// Legacy aliases
+export const getQuotationsPageData = getClientQuotationsPageData
+export const getQuotationDocumentData = getClientQuotationDocumentData

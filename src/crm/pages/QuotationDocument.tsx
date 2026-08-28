@@ -1,9 +1,9 @@
 import { ArrowLeft, Printer, SquarePen } from 'lucide-react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { QuotationPDF } from '~/components/crm/QuotationPDF'
-import type { QuotationDocumentPayload } from '~/lib/quotations'
+import type { ClientQuotationDocumentPayload } from '~/lib/client-quotations'
 
-export default function QuotationDocumentPage({ initialData }: { initialData: QuotationDocumentPayload }) {
+export default function QuotationDocumentPage({ initialData }: { initialData: ClientQuotationDocumentPayload }) {
   const navigate = useNavigate()
   const quotation = initialData.quotation
 
@@ -28,7 +28,7 @@ export default function QuotationDocumentPage({ initialData }: { initialData: Qu
           <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-muted)' }}>
             It may have been deleted or the link is out of date.
           </p>
-          <Link to="/admin/quotations" className="btn-primary" style={{ textDecoration: 'none' }}>
+          <Link to="/admin/client-quotations" className="btn-primary" style={{ textDecoration: 'none' }}>
             Back to quotations
           </Link>
         </div>
@@ -54,7 +54,7 @@ export default function QuotationDocumentPage({ initialData }: { initialData: Qu
         }}
       >
         <Link
-          to="/admin/quotations"
+          to="/admin/client-quotations"
           className="btn-secondary"
           aria-label="Back to the quotations list"
           style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}

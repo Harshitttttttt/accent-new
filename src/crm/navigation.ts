@@ -18,8 +18,12 @@ export function pageFromPath(pathname: string): string {
   if (pathname.startsWith('/reports/')) {
     return decodeURIComponent(pathname.slice('/reports/'.length))
   }
-  // Static quotation routes shadow the generic /admin/$module page.
-  if (pathname.startsWith('/admin/quotations')) return 'quotations'
+  // Static client/vendor quotation routes shadow the generic /admin/$module page.
+  if (pathname.startsWith('/admin/client-quotations')) return 'client-quotations'
+  if (pathname.startsWith('/admin/vendor-quotations')) return 'vendor-quotations'
+  // Legacy aliases — keep for old links/bookmarks.
+  if (pathname.startsWith('/admin/quotations')) return 'client-quotations'
+  if (pathname.startsWith('/admin/quotation-outgoing')) return 'vendor-quotations'
   if (pathname.startsWith('/admin/')) {
     return decodeURIComponent(pathname.slice('/admin/'.length))
   }
@@ -76,10 +80,15 @@ export function useCrmNavigation() {
       case 'reports-project-status':
       case 'reports-attendance':
         return router.navigate({ to: '/reports/$report', params: { report: page } })
+      case 'client-quotations':
+        return router.navigate({ to: '/admin/client-quotations' })
+      case 'vendor-quotations':
+        return router.navigate({ to: '/admin/vendor-quotations' })
+      // Legacy aliases
       case 'quotations':
-        return router.navigate({ to: '/admin/quotations' })
+        return router.navigate({ to: '/admin/client-quotations' })
       case 'quotation-outgoing':
-        return router.navigate({ to: '/admin/quotation-outgoing' })
+        return router.navigate({ to: '/admin/vendor-quotations' })
       case 'purchase-orders':
       case 'purchase-invoices':
       case 'cash-voucher':

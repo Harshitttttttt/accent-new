@@ -140,7 +140,7 @@ export const proposalExclusionsTable = pgTable(
   (table) => [index('idx_proposal_exclusions_proposal').on(table.proposalId, table.position)],
 )
 
-export const proposalQuotationLinesTable = pgTable(
+export const clientQuotationLinesTable = pgTable(
   'proposal_quotation_lines',
   {
     id: uuid('id').defaultRandom().primaryKey(),
@@ -211,6 +211,12 @@ export const proposalStatusHistoryTable = pgTable(
 
 export type ProposalRecord = typeof proposalsTable.$inferSelect
 export type NewProposalRecord = typeof proposalsTable.$inferInsert
-export type ProposalQuotationLineRecord = typeof proposalQuotationLinesTable.$inferSelect
+export type ClientQuotationLineRecord = typeof clientQuotationLinesTable.$inferSelect
+/** @deprecated use ClientQuotationLineRecord */
+export type ProposalQuotationLineRecord = ClientQuotationLineRecord
 export type ProposalFollowUpRecord = typeof proposalFollowUpsTable.$inferSelect
 export type ProposalCommentRecord = typeof proposalCommentsTable.$inferSelect
+
+// ── Backward compat: old variable name → new client name ──
+/** @deprecated use clientQuotationLinesTable */
+export const proposalQuotationLinesTable = clientQuotationLinesTable

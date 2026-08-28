@@ -1,19 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import VendorQuotationsPage from '~/crm/pages/VendorQuotations'
-import { getVendorQuotationsPageData } from '~/lib/vendor-quotations.functions'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/admin/quotation-outgoing')({
   ssr: true,
-  loader: () => getVendorQuotationsPageData(),
-  head: () => ({ meta: [{ title: 'Quotation (Incoming) | AccentCRM' }] }),
-  component: VendorQuotationsRoute,
+  loader: () => {
+    throw redirect({ to: '/admin/vendor-quotations' })
+  },
 })
-
-function VendorQuotationsRoute() {
-  const initialData = Route.useLoaderData()
-  return (
-    <div className="h-full" data-route="admin-quotation-outgoing">
-      <VendorQuotationsPage initialData={initialData} />
-    </div>
-  )
-}

@@ -27,7 +27,7 @@ const PAGE_TITLES: Record<string, string> = {
   'reports-balances': 'Outstanding Balances',
   'reports-project-status': 'Project Status',
   'reports-attendance': 'Attendance Report',
-  quotations: 'Quotations',
+  quotations: 'Client Quotations',
   'purchase-orders': 'Purchase Orders',
   'sale-invoices': 'Sale Invoices',
   'purchase-invoices': 'Purchase Invoices',

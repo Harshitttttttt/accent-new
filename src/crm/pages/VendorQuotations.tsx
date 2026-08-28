@@ -141,7 +141,7 @@ export default function VendorQuotationsPage({ initialData }: { initialData: Ven
       {/* Header */}
       <div className="page-header">
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Quotation (Incoming)</h2>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Vendor Quotations</h2>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
             {stats.totalCount} vendor quotations · {formatINRCompact(stats.openValuePaise, { fromPaise: true })} open ·{' '}
             {formatINRCompact(stats.approvedValuePaise, { fromPaise: true })} approved

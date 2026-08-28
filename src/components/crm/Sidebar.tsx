@@ -83,8 +83,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Administration',
     items: [
-      { id: 'quotations', label: 'Quotations', icon: <FileText size={16} /> },
-      { id: 'quotation-outgoing', label: 'Quotation (Incoming)', icon: <Truck size={16} /> },
+      { id: 'client-quotations', label: 'Client Quotations', icon: <FileText size={16} /> },
+      { id: 'vendor-quotations', label: 'Vendor Quotations', icon: <Truck size={16} /> },
       { id: 'purchase-orders', label: 'Purchase Orders', icon: <ShoppingCart size={16} /> },
       { id: 'sale-invoices', label: 'Sale Invoices', icon: <Receipt size={16} /> },
       { id: 'purchase-invoices', label: 'Purchase Invoices', icon: <Receipt size={16} /> },
