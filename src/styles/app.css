@@ -66,3 +66,25 @@ textarea {
     transform: translateY(0);
   }
 }
+
+@media print {
+  .skip-link,
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 12mm 10mm 14mm 10mm;
+  }
+  /* Print pagination — verified in headless Chromium PDF output:
+     border-collapse:collapse drops the table's outer border on page fragments;
+     separate + border-spacing:0 draws it on every fragment. Rows must stay
+     break-inside:auto so tall annexure rows split instead of leaving gaps. */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  table { border-collapse: separate !important; border-spacing: 0 !important; break-inside: auto; }
+  table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  tr { break-inside: auto; page-break-inside: auto; }
+  .quotation-pdf-shell { overflow: visible !important; }
+  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
+}
