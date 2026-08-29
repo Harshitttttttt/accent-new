@@ -607,4 +607,14 @@ body {
     height: auto !important;
     overflow: visible !important;
   }
+  /* Pagination borders — verified in headless Chromium PDF output:
+     collapse drops the outer border on page fragments; separate + spacing 0
+     draws it on every fragment. Rows stay break-inside:auto (no gaps). */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  table { border-collapse: separate !important; border-spacing: 0 !important; break-inside: auto; }
+  table, thead, tbody, tfoot, tr, th, td { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  tr { break-inside: auto; page-break-inside: auto; }
+  .quotation-pdf-shell { overflow: visible !important; }
+  .quotation-pdf-shell table { border: 1px solid #d1d5db !important; }
 }

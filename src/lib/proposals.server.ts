@@ -9,7 +9,7 @@ import {
   proposalExclusionsTable,
   proposalFollowUpsTable,
   proposalInputDocumentsTable,
-  proposalQuotationLinesTable,
+  clientQuotationLinesTable,
   proposalSoftwareTable,
   proposalStatusHistoryTable,
   proposalsTable,
@@ -120,15 +120,15 @@ async function loadProposalChildren(proposalId: string) {
         .orderBy(proposalSoftwareTable.position),
       db
         .select({
-          id: proposalQuotationLinesTable.id,
-          description: proposalQuotationLinesTable.description,
-          quantity: proposalQuotationLinesTable.quantity,
-          unitPricePaise: proposalQuotationLinesTable.unitPricePaise,
-          amountPaise: proposalQuotationLinesTable.amountPaise,
+          id: clientQuotationLinesTable.id,
+          description: clientQuotationLinesTable.description,
+          quantity: clientQuotationLinesTable.quantity,
+          unitPricePaise: clientQuotationLinesTable.unitPricePaise,
+          amountPaise: clientQuotationLinesTable.amountPaise,
         })
-        .from(proposalQuotationLinesTable)
-        .where(eq(proposalQuotationLinesTable.proposalId, proposalId))
-        .orderBy(proposalQuotationLinesTable.position),
+        .from(clientQuotationLinesTable)
+        .where(eq(clientQuotationLinesTable.proposalId, proposalId))
+        .orderBy(clientQuotationLinesTable.position),
       db
         .select({
           id: proposalFollowUpsTable.id,
@@ -520,12 +520,12 @@ export async function updateProposal(values: ProposalUpdate, actorUserId: string
     db.delete(proposalDeliverablesTable).where(eq(proposalDeliverablesTable.proposalId, values.id)),
     db.delete(proposalExclusionsTable).where(eq(proposalExclusionsTable.proposalId, values.id)),
     db.delete(proposalSoftwareTable).where(eq(proposalSoftwareTable.proposalId, values.id)),
-    db.delete(proposalQuotationLinesTable).where(eq(proposalQuotationLinesTable.proposalId, values.id)),
+    db.delete(clientQuotationLinesTable).where(eq(clientQuotationLinesTable.proposalId, values.id)),
     ...(children.inputs.length > 0 ? [db.insert(proposalInputDocumentsTable).values(children.inputs)] : []),
     ...(children.deliverables.length > 0 ? [db.insert(proposalDeliverablesTable).values(children.deliverables)] : []),
     ...(children.exclusions.length > 0 ? [db.insert(proposalExclusionsTable).values(children.exclusions)] : []),
     ...(children.software.length > 0 ? [db.insert(proposalSoftwareTable).values(children.software)] : []),
-    ...(children.quotationLines.length > 0 ? [db.insert(proposalQuotationLinesTable).values(children.quotationLines)] : []),
+    ...(children.quotationLines.length > 0 ? [db.insert(clientQuotationLinesTable).values(children.quotationLines)] : []),
   ])
 }
 

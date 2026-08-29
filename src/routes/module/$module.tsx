@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import GenericPage from '~/crm/pages/GenericPage'
 
 const MODULES: Record<string, { title: string; description: string; columns: string[] }> = {
-  quotations: { title: 'Quotations', description: 'Manage client quotations', columns: ['ID', 'Quotation No.', 'Description', 'Amount', 'Status', 'Date'] },
+  quotations: { title: 'Client Quotations', description: 'Manage client quotations', columns: ['ID', 'Quotation No.', 'Description', 'Amount', 'Status', 'Date'] },
   'purchase-orders': { title: 'Purchase Orders', description: 'Track procurement orders', columns: ['ID', 'PO Number', 'Vendor', 'Amount', 'Status', 'Date'] },
   'purchase-invoices': { title: 'Purchase Invoices', description: 'Vendor invoices received', columns: ['ID', 'Invoice No.', 'Vendor', 'Amount', 'Status', 'Date'] },
   expenses: { title: 'Expenses', description: 'Employee expense submissions', columns: ['ID', 'Reference', 'Description', 'Amount', 'Status', 'Date'] },

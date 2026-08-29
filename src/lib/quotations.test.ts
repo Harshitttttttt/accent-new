@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
-  computeQuotationStats,
-  computeQuotationTotals,
+  computeClientQuotationStats,
+  computeClientQuotationTotals,
   htmlToPlainText,
-  QUOTATION_GST_RATE_PCT,
+  CLIENT_QUOTATION_GST_RATE_PCT,
 } from './quotations'
 
-describe('computeQuotationStats', () => {
+describe('computeClientQuotationStats', () => {
   it('rolls up counts and values across the pipeline', () => {
-    const stats = computeQuotationStats([
+    const stats = computeClientQuotationStats([
       { status: 'draft', valuePaise: 100_00 },
       { status: 'sent', valuePaise: 200_00 },
       { status: 'negotiation', valuePaise: 400_00 },
@@ -28,7 +28,7 @@ describe('computeQuotationStats', () => {
   })
 
   it('returns zeros for an empty list', () => {
-    expect(computeQuotationStats([])).toEqual({
+    expect(computeClientQuotationStats([])).toEqual({
       totalCount: 0,
       draftCount: 0,
       sentCount: 0,
@@ -40,9 +40,9 @@ describe('computeQuotationStats', () => {
   })
 })
 
-describe('computeQuotationTotals', () => {
+describe('computeClientQuotationTotals', () => {
   it('sums line amounts and applies GST at the statutory default', () => {
-    const totals = computeQuotationTotals({
+    const totals = computeClientQuotationTotals({
       lines: [
         { quantity: 2, unitPricePaise: 500_00 },
         { quantity: 1, unitPricePaise: 1_000_00 },
@@ -51,25 +51,25 @@ describe('computeQuotationTotals', () => {
     })
 
     expect(totals.subtotalPaise).toBe(2_000_00)
-    expect(totals.gstPaise).toBe(Math.round((2_000_00 * QUOTATION_GST_RATE_PCT) / 100))
+    expect(totals.gstPaise).toBe(Math.round((2_000_00 * CLIENT_QUOTATION_GST_RATE_PCT) / 100))
     expect(totals.totalPaise).toBe(totals.subtotalPaise + totals.gstPaise)
   })
 
   it('falls back to the manual value when there are no lines', () => {
-    const totals = computeQuotationTotals({ lines: [], valuePaise: 5_000_00 })
+    const totals = computeClientQuotationTotals({ lines: [], valuePaise: 5_000_00 })
     expect(totals.subtotalPaise).toBe(5_000_00)
-    expect(totals.gstPaise).toBe(Math.round((5_000_00 * QUOTATION_GST_RATE_PCT) / 100))
+    expect(totals.gstPaise).toBe(Math.round((5_000_00 * CLIENT_QUOTATION_GST_RATE_PCT) / 100))
   })
 
   it('rounds GST HALF_UP into whole paise exactly once', () => {
     // Subtotal ₹999.99 → GST 18% = ₹179.9982 → 17_999.82 paise → 18_000 paise.
-    const totals = computeQuotationTotals({ lines: [{ quantity: 1, unitPricePaise: 99_999 }], valuePaise: null })
+    const totals = computeClientQuotationTotals({ lines: [{ quantity: 1, unitPricePaise: 99_999 }], valuePaise: null })
     expect(totals.gstPaise).toBe(18_000)
     expect(totals.totalPaise).toBe(99_999 + 18_000)
   })
 
   it('treats a missing manual value as zero', () => {
-    const totals = computeQuotationTotals({ lines: [], valuePaise: null })
+    const totals = computeClientQuotationTotals({ lines: [], valuePaise: null })
     expect(totals.subtotalPaise).toBe(0)
     expect(totals.gstPaise).toBe(0)
     expect(totals.totalPaise).toBe(0)
