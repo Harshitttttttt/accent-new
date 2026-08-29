@@ -86,6 +86,21 @@ export const vendorQuotationStatusEnum = pgEnum('vendor_quotation_status', [
   'expired',
 ])
 
+export const saleInvoiceStatusEnum = pgEnum('sale_invoice_status', ['draft', 'sent', 'paid', 'overdue', 'cancelled'])
+
+export const purchaseInvoiceStatusEnum = pgEnum('purchase_invoice_status', [
+  'draft',
+  'pending',
+  'approved',
+  'paid',
+  'overdue',
+  'cancelled',
+])
+
+export const paymentStatusEnum = pgEnum('payment_status', ['unpaid', 'partial', 'paid', 'overdue'])
+
+export const gstTypeEnum = pgEnum('gst_type', ['cgst_sgst', 'igst'])
+
 export const riskStatusEnum = pgEnum('risk_status', ['open', 'mitigated', 'closed'])
 
 export const assignmentStatusEnum = pgEnum('assignment_status', [

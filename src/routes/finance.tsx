@@ -1,20 +1,25 @@
-import { createFileRoute } from '@tanstack/react-router'
-import FinancialDashboard from '~/crm/pages/FinancialDashboard'
-import { getCrmSnapshot } from '~/lib/crm.functions'
+import { createFileRoute, Outlet, useRouterState } from '@tanstack/react-router'
+import InvoicesPage from '~/crm/pages/Invoices'
+import { getInvoicesPageData } from '~/lib/invoices.functions'
 
 export const Route = createFileRoute('/finance')({
   ssr: 'data-only',
-  loader: () => getCrmSnapshot(),
+  loader: () => getInvoicesPageData(),
   pendingComponent: FinancePending,
   component: FinanceRoute,
 })
 
 function FinanceRoute() {
-  const snapshot = Route.useLoaderData()
-
+  const payload = Route.useLoaderData()
+  const { location } = useRouterState()
+  // When a nested finance child is active (/finance/sale/* or /finance/purchase/*), render the child's Outlet
+  // instead of the list. This keeps /finance as the list while enabling dedicated full-page forms
+  // without the modal anti-pattern.
+  const isChild = location.pathname.startsWith('/finance/sale') || location.pathname.startsWith('/finance/purchase')
+  if (isChild) return <Outlet />
   return (
-    <div className="h-full" data-route="finance" data-balance={snapshot.outstandingBalance}>
-      <FinancialDashboard />
+    <div className="h-full" data-route="finance">
+      <InvoicesPage initialData={payload} />
     </div>
   )
 }
@@ -22,7 +27,7 @@ function FinanceRoute() {
 function FinancePending() {
   return (
     <div className="grid h-full place-items-center bg-[var(--bg)] text-sm text-[var(--text-muted)]">
-      Preparing the finance dashboard…
+      Preparing invoices…
     </div>
   )
 }
