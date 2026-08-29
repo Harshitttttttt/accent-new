@@ -1,20 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
-import FinancialDashboard from '~/crm/pages/FinancialDashboard'
-import { getCrmSnapshot } from '~/lib/crm.functions'
+import InvoicesPage from '~/crm/pages/Invoices'
+import { getInvoicesPageData } from '~/lib/invoices.functions'
 
 export const Route = createFileRoute('/finance')({
   ssr: 'data-only',
-  loader: () => getCrmSnapshot(),
+  loader: () => getInvoicesPageData(),
   pendingComponent: FinancePending,
   component: FinanceRoute,
 })
 
 function FinanceRoute() {
-  const snapshot = Route.useLoaderData()
-
+  const payload = Route.useLoaderData()
   return (
-    <div className="h-full" data-route="finance" data-balance={snapshot.outstandingBalance}>
-      <FinancialDashboard />
+    <div className="h-full" data-route="finance">
+      <InvoicesPage initialData={payload} />
     </div>
   )
 }
@@ -22,7 +21,7 @@ function FinanceRoute() {
 function FinancePending() {
   return (
     <div className="grid h-full place-items-center bg-[var(--bg)] text-sm text-[var(--text-muted)]">
-      Preparing the finance dashboard…
+      Preparing invoices…
     </div>
   )
 }
