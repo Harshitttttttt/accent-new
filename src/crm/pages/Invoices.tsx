@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { ArrowUpRight, FileText, LayoutGrid, List, Pencil, Plus, Search, Trash2, X, AlertTriangle, Wallet, Building2, Truck, Printer, Copy, Filter, SlidersHorizontal } from 'lucide-react'
-import { Input } from '~/components/ui/input'
-import { Field, FieldLabel } from '~/components/ui/field'
 import { formatPaise, formatINRCompact, amountInWordsINR } from '~/lib/money'
 import {
   SALE_INVOICE_STATUSES,
@@ -17,15 +16,10 @@ import {
   type SaleInvoiceListItem,
   type PurchaseInvoiceListItem,
   type InvoicesPagePayload,
-  type InvoiceFormOptions,
   type SaleInvoiceDetail,
   type PurchaseInvoiceDetail,
 } from '~/lib/invoices'
 import {
-  createSaleInvoiceAction,
-  createPurchaseInvoiceAction,
-  updateSaleInvoiceAction,
-  updatePurchaseInvoiceAction,
   deleteSaleInvoiceAction,
   deletePurchaseInvoiceAction,
   getInvoicesPageData,
@@ -38,14 +32,6 @@ function formatDate(v: string | null): string {
   if (!v) return '—'
   return new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
-function paiseToRupeeString(p: number): string { return (p / 100).toString() }
-function rupeeStringToPaise(s: string): number {
-  const n = Number(s)
-  if (!Number.isFinite(n) || n < 0) return 0
-  return Math.round(n * 100)
-}
-type ItemDraft = { description: string; quantity: string; unitPrice: string }
-const EMPTY_ITEM: ItemDraft = { description: '', quantity: '1', unitPrice: '' }
 type Tab = 'sale' | 'purchase'
 type ViewMode = 'table' | 'board'
 
@@ -68,6 +54,7 @@ function printSaleInvoice(inv: SaleInvoiceDetail, showFeedback?: (t: 'success' |
 
 // ── Main page ────────────────────────────────────────────────────────────
 export default function InvoicesPage({ initialData }: { initialData: InvoicesPagePayload }) {
+  const navigate = useNavigate()
   const [data, setData] = useState<InvoicesPagePayload>(initialData)
   const [tab, setTab] = useState<Tab>('sale')
   const [search, setSearch] = useState('')
@@ -76,18 +63,14 @@ export default function InvoicesPage({ initialData }: { initialData: InvoicesPag
   const [sortBy, setSortBy] = useState<'newest' | 'dueAsc' | 'totalDesc'>('newest')
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingSale, setEditingSale] = useState<SaleInvoiceDetail | null>(null)
-  const [editingPurchase, setEditingPurchase] = useState<PurchaseInvoiceDetail | null>(null)
   const [detailSale, setDetailSale] = useState<SaleInvoiceDetail | null>(null)
   const [detailPurchase, setDetailPurchase] = useState<PurchaseInvoiceDetail | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; number: string; kind: Tab } | null>(null)
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setModalOpen(true) } }
+    const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); void navigate({ to: tab === 'sale' ? '/finance/sale/new' : '/finance/purchase/new' }) } }
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
-  }, [])
+  }, [navigate, tab])
 
   const saleStats = useMemo(() => computeSaleStats(data.saleInvoices), [data.saleInvoices])
   const purchaseStats = useMemo(() => computePurchaseStats(data.purchaseInvoices), [data.purchaseInvoices])
@@ -126,22 +109,16 @@ export default function InvoicesPage({ initialData }: { initialData: InvoicesPag
 
   function showFeedback(type: 'success' | 'error', message: string) { setFeedback({ type, message }); setTimeout(() => setFeedback(null), 4000) }
   async function reload() { try { setData(await getInvoicesPageData()) } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Failed to reload.') } }
-  function openCreate() { setEditingSale(null); setEditingPurchase(null); setModalOpen(true) }
-  async function openEditSale(id: string) {
-    const { getSaleInvoiceDetailData } = await import('~/lib/invoices.functions')
-    try { const p = await getSaleInvoiceDetailData({ data: { id } }); if (!p.invoice) { showFeedback('error', 'Invoice not found.'); return } setEditingSale(p.invoice); setEditingPurchase(null); setModalOpen(true) } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Failed to load invoice.') }
-  }
-  async function openEditPurchase(id: string) {
-    const { getPurchaseInvoiceDetailData } = await import('~/lib/invoices.functions')
-    try { const p = await getPurchaseInvoiceDetailData({ data: { id } }); if (!p.invoice) { showFeedback('error', 'Invoice not found.'); return } setEditingPurchase(p.invoice); setEditingSale(null); setModalOpen(true) } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Failed to load invoice.') }
-  }
+  function openCreate() { void navigate({ to: tab === 'sale' ? '/finance/sale/new' : '/finance/purchase/new' }) }
+  function openEditSale(id: string) { void navigate({ to: '/finance/sale/$invoiceId', params: { invoiceId: id } }) }
+  function openEditPurchase(id: string) { void navigate({ to: '/finance/purchase/$invoiceId', params: { invoiceId: id } }) }
   async function openDetailSale(id: string) { const { getSaleInvoiceDetailData } = await import('~/lib/invoices.functions'); const p = await getSaleInvoiceDetailData({ data: { id } }); if (p.invoice) setDetailSale(p.invoice) }
   async function openDetailPurchase(id: string) { const { getPurchaseInvoiceDetailData } = await import('~/lib/invoices.functions'); const p = await getPurchaseInvoiceDetailData({ data: { id } }); if (p.invoice) setDetailPurchase(p.invoice) }
   async function handleDelete() { if (!deleteTarget) return; const t = deleteTarget; setDeleteTarget(null); try { if (t.kind === 'sale') await deleteSaleInvoiceAction({ data: { id: t.id } }); else await deletePurchaseInvoiceAction({ data: { id: t.id } }); showFeedback('success', `${t.number} deleted.`); await reload() } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Delete failed.') } }
   async function handleStatusChangeSale(id: string, status: string) { try { await updateSaleStatusAction({ data: { id, status: status as never } }); await reload(); showFeedback('success', 'Status updated.') } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Status update failed.') } }
   async function handleStatusChangePurchase(id: string, status: string) { try { await updatePurchaseStatusAction({ data: { id, status: status as never } }); await reload(); showFeedback('success', 'Status updated.') } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Status update failed.') } }
   async function duplicateSale(id: string) {
-    const { getSaleInvoiceDetailData } = await import('~/lib/invoices.functions')
+    const { getSaleInvoiceDetailData, createSaleInvoiceAction } = await import('~/lib/invoices.functions')
     const payload = await getSaleInvoiceDetailData({ data: { id } })
     if (!payload.invoice) { showFeedback('error', 'Invoice not found.'); return }
     const inv = payload.invoice
@@ -158,7 +135,7 @@ export default function InvoicesPage({ initialData }: { initialData: InvoicesPag
     } catch (e) { showFeedback('error', e instanceof Error ? e.message : 'Duplicate failed.') }
   }
   async function duplicatePurchase(id: string) {
-    const { getPurchaseInvoiceDetailData } = await import('~/lib/invoices.functions')
+    const { getPurchaseInvoiceDetailData, createPurchaseInvoiceAction } = await import('~/lib/invoices.functions')
     const payload = await getPurchaseInvoiceDetailData({ data: { id } })
     if (!payload.invoice) { showFeedback('error', 'Invoice not found.'); return }
     const inv = payload.invoice
@@ -316,12 +293,6 @@ export default function InvoicesPage({ initialData }: { initialData: InvoicesPag
 
       {detailSale && <SaleDetailDrawer invoice={detailSale} onClose={() => setDetailSale(null)} onEdit={() => { setDetailSale(null); openEditSale(detailSale.id) }} onDuplicate={() => { setDetailSale(null); duplicateSale(detailSale.id) }} onPrint={() => printSaleInvoice(detailSale, showFeedback)} />}
       {detailPurchase && <PurchaseDetailDrawer invoice={detailPurchase} onClose={() => setDetailPurchase(null)} onEdit={() => { setDetailPurchase(null); openEditPurchase(detailPurchase.id) }} onDuplicate={() => { setDetailPurchase(null); duplicatePurchase(detailPurchase.id) }} />}
-
-      {modalOpen && (
-        isSale
-          ? <SaleFormModal options={data.options} initial={editingSale} onClose={() => { setModalOpen(false); setEditingSale(null); setEditingPurchase(null) }} onSaved={async () => { setModalOpen(false); setEditingSale(null); await reload(); showFeedback('success', editingSale ? 'Invoice updated.' : 'Sale invoice created.') }} saving={saving} setSaving={setSaving} showFeedback={showFeedback} />
-          : <PurchaseFormModal options={data.options} initial={editingPurchase} onClose={() => { setModalOpen(false); setEditingSale(null); setEditingPurchase(null) }} onSaved={async () => { setModalOpen(false); setEditingPurchase(null); await reload(); showFeedback('success', editingPurchase ? 'Invoice updated.' : 'Purchase invoice created.') }} saving={saving} setSaving={setSaving} showFeedback={showFeedback} />
-      )}
 
       {deleteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }} onClick={() => setDeleteTarget(null)}>
@@ -633,234 +604,3 @@ function PurchaseDetailDrawer({ invoice, onClose, onEdit, onDuplicate }: { invoi
   )
 }
 
-// ── Form modals ──────────────────────────────────────────────────────────
-function SaleFormModal({ options, initial, onClose, onSaved, saving, setSaving, showFeedback }: { options: InvoiceFormOptions; initial: SaleInvoiceDetail | null; onClose: () => void; onSaved: () => void; saving: boolean; setSaving: (v: boolean) => void; showFeedback: (t: 'success' | 'error', m: string) => void }) {
-  const isEdit = !!initial
-  const [clientName, setClientName] = useState(initial?.clientName ?? '')
-  const [companyId, setCompanyId] = useState<string>(initial?.companyId ?? '')
-  const [clientEmail, setClientEmail] = useState(initial?.clientEmail ?? '')
-  const [clientPhone, setClientPhone] = useState(initial?.clientPhone ?? '')
-  const [clientAddress, setClientAddress] = useState(initial?.clientAddress ?? '')
-  const [clientGstin, setClientGstin] = useState(initial?.clientGstin ?? '')
-  const [clientPan, setClientPan] = useState(initial?.clientPan ?? '')
-  const [poNumber, setPoNumber] = useState(initial?.poNumber ?? '')
-  const [poDate, setPoDate] = useState(initial?.poDate ?? '')
-  const [originalPo, setOriginalPo] = useState(initial?.originalPoValuePaise != null ? paiseToRupeeString(initial.originalPoValuePaise) : '')
-  const [projectId, setProjectId] = useState<string>(initial?.projectId ?? '')
-  const [invoiceDate, setInvoiceDate] = useState(initial?.invoiceDate ?? new Date().toISOString().slice(0, 10))
-  const [dueDate, setDueDate] = useState(initial?.dueDate ?? '')
-  const [gstType, setGstType] = useState<'cgst_sgst' | 'igst'>((initial?.gstType as never) ?? 'cgst_sgst')
-  const [cgst, setCgst] = useState(String((initial?.cgstRateBps ?? 900) / 100))
-  const [sgst, setSgst] = useState(String((initial?.sgstRateBps ?? 900) / 100))
-  const [igst, setIgst] = useState(String((initial?.igstRateBps ?? 1800) / 100))
-  const [discount, setDiscount] = useState(initial?.discountPaise != null ? paiseToRupeeString(initial.discountPaise) : '')
-  const [amountPaid, setAmountPaid] = useState(initial?.amountPaidPaise != null ? paiseToRupeeString(initial.amountPaidPaise) : '')
-  const [notes, setNotes] = useState(initial?.notes ?? '')
-  const [terms, setTerms] = useState(initial?.terms ?? '')
-  const [status, setStatus] = useState<string>(initial?.status ?? 'draft')
-  const [items, setItems] = useState<ItemDraft[]>(initial?.items?.length ? initial.items.map((it) => ({ description: it.description, quantity: String(it.quantity), unitPrice: paiseToRupeeString(it.unitPricePaise) })) : [{ ...EMPTY_ITEM }])
-
-  function updateItem(idx: number, field: keyof ItemDraft, value: string) {
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)))
-  }
-  function addItem() { setItems((prev) => [...prev, { ...EMPTY_ITEM }]) }
-  function removeItem(idx: number) { setItems((prev) => prev.filter((_, i) => i !== idx)) }
-  function onCompanyChange(id: string) { setCompanyId(id); const c = options.companies.find((x) => x.id === id); if (c) setClientName(c.name) }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault(); setSaving(true)
-    try {
-      const payload = {
-        companyId: companyId || null, clientName, clientEmail: clientEmail || null, clientPhone: clientPhone || null, clientAddress: clientAddress || null, clientGstin: clientGstin || null, clientPan: clientPan || null, clientState: null, clientStateCode: null, kindAttn: null,
-        projectId: projectId || null, poNumber: poNumber || null, poDate: poDate || null, originalPoValuePaise: originalPo ? rupeeStringToPaise(originalPo) : null, description: null,
-        gstNumber: null, panNumber: null, tanNumber: null, serviceCategory: null, bankAddress: null,
-        invoiceDate: invoiceDate || null, dueDate: dueDate || null,
-        gstType: gstType as never, cgstRateBps: Math.round(Number(cgst) * 100), sgstRateBps: Math.round(Number(sgst) * 100), igstRateBps: Math.round(Number(igst) * 100),
-        discountPaise: discount ? rupeeStringToPaise(discount) : 0, amountPaidPaise: amountPaid ? rupeeStringToPaise(amountPaid) : 0,
-        notes: notes || null, terms: terms || null, status: status as never,
-        items: items.filter((it) => it.description.trim()).map((it) => ({ description: it.description.trim(), quantity: Math.max(1, parseInt(it.quantity, 10) || 1), unitPricePaise: rupeeStringToPaise(it.unitPrice || '0') })),
-      }
-      if (isEdit) await updateSaleInvoiceAction({ data: { id: initial!.id, ...payload } })
-      else await createSaleInvoiceAction({ data: payload })
-      onSaved()
-    } catch (err) { showFeedback('error', err instanceof Error ? err.message : 'Save failed.') } finally { setSaving(false) }
-  }
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
-      <form onSubmit={handleSubmit} style={{ background: 'var(--surface)', borderRadius: 12, width: 760, maxWidth: '100%', maxHeight: '92vh', overflow: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{isEdit ? `Edit ${initial!.invoiceNumber}` : 'New Sale Invoice — Sent to Client'}</h3>
-          <button type="button" className="btn-ghost" onClick={onClose}><X size={16} /></button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field>
-            <FieldLabel>Company (master)</FieldLabel>
-            <select value={companyId} onChange={(e) => onCompanyChange(e.target.value)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>
-              <option value="">— No master link —</option>
-              {options.companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-          <Field><FieldLabel>Client Name *</FieldLabel><Input value={clientName} onChange={(e) => setClientName(e.target.value)} required placeholder="Acme Corp Pvt Ltd" /></Field>
-          <Field><FieldLabel>Client Email</FieldLabel><Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="billing@acme.in" /></Field>
-          <Field><FieldLabel>GSTIN</FieldLabel><Input value={clientGstin} onChange={(e) => setClientGstin(e.target.value)} placeholder="27AAPCA..." /></Field>
-          <Field><FieldLabel>PAN</FieldLabel><Input value={clientPan} onChange={(e) => setClientPan(e.target.value)} placeholder="AAPCA..." /></Field>
-          <Field><FieldLabel>Phone</FieldLabel><Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} /></Field>
-          <Field style={{ gridColumn: '1 / -1' }}><FieldLabel>Client Address</FieldLabel><textarea value={clientAddress} onChange={(e) => setClientAddress(e.target.value)} rows={2} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }} placeholder="Billing address…" /></Field>
-          <Field><FieldLabel>Invoice Date</FieldLabel><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></Field>
-          <Field><FieldLabel>Due Date</FieldLabel><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
-          <Field><FieldLabel>PO Number</FieldLabel><Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="PO-2026-..." /></Field>
-          <Field><FieldLabel>PO Value (₹)</FieldLabel><Input type="number" step="0.01" value={originalPo} onChange={(e) => setOriginalPo(e.target.value)} placeholder="For utilization bar" /></Field>
-        </div>
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>Line Items — quantity × rate, tax computed server-side</span>
-            <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: '4px 8px' }} onClick={addItem}><Plus size={12} /> Add line</button>
-          </div>
-          {items.map((it, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 32px', gap: 8, marginBottom: 8 }}>
-              <Input placeholder="Description" value={it.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} />
-              <Input type="number" min="1" placeholder="Qty" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
-              <Input type="number" step="0.01" placeholder="Rate (₹)" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
-              <button type="button" className="btn-ghost" style={{ padding: '6px' }} onClick={() => removeItem(idx)}><Trash2 size={14} /></button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <Field>
-            <FieldLabel>GST Type</FieldLabel>
-            <select value={gstType} onChange={(e) => setGstType(e.target.value as never)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>
-              <option value="cgst_sgst">CGST + SGST</option><option value="igst">IGST</option>
-            </select>
-          </Field>
-          {gstType === 'cgst_sgst' ? (
-            <><Field><FieldLabel>CGST %</FieldLabel><Input type="number" step="0.1" value={cgst} onChange={(e) => setCgst(e.target.value)} /></Field>
-            <Field><FieldLabel>SGST %</FieldLabel><Input type="number" step="0.1" value={sgst} onChange={(e) => setSgst(e.target.value)} /></Field></>
-          ) : (<Field><FieldLabel>IGST %</FieldLabel><Input type="number" step="0.1" value={igst} onChange={(e) => setIgst(e.target.value)} /></Field>)}
-          <Field><FieldLabel>Discount (₹)</FieldLabel><Input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} /></Field>
-          <Field><FieldLabel>Amount Paid (₹)</FieldLabel><Input type="number" step="0.01" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} /></Field>
-          <Field>
-            <FieldLabel>Status</FieldLabel>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>
-              {SALE_INVOICE_STATUSES.map((s) => <option key={s} value={s}>{SALE_INVOICE_STATUS_LABELS[s]}</option>)}
-            </select>
-          </Field>
-          <Field>
-            <FieldLabel>Project</FieldLabel>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>
-              <option value="">— None —</option>{options.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </Field>
-        </div>
-        <Field><FieldLabel>Notes</FieldLabel><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }} /></Field>
-        <Field><FieldLabel>Terms</FieldLabel><textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={2} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }} /></Field>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-          <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Invoice'}</button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-function PurchaseFormModal({ options, initial, onClose, onSaved, saving, setSaving, showFeedback }: { options: InvoiceFormOptions; initial: PurchaseInvoiceDetail | null; onClose: () => void; onSaved: () => void; saving: boolean; setSaving: (v: boolean) => void; showFeedback: (t: 'success' | 'error', m: string) => void }) {
-  const isEdit = !!initial
-  const [vendorName, setVendorName] = useState(initial?.vendorName ?? '')
-  const [vendorId, setVendorId] = useState<string>(initial?.vendorId ?? '')
-  const [vendorEmail, setVendorEmail] = useState(initial?.vendorEmail ?? '')
-  const [vendorGstin, setVendorGstin] = useState(initial?.vendorGstin ?? '')
-  const [vendorPan, setVendorPan] = useState(initial?.vendorPan ?? '')
-  const [vendorAddress, setVendorAddress] = useState(initial?.vendorAddress ?? '')
-  const [projectId, setProjectId] = useState<string>(initial?.projectId ?? '')
-  const [poNumber, setPoNumber] = useState(initial?.poNumber ?? '')
-  const [poDate, setPoDate] = useState(initial?.poDate ?? '')
-  const [invoiceDate, setInvoiceDate] = useState(initial?.invoiceDate ?? new Date().toISOString().slice(0, 10))
-  const [dueDate, setDueDate] = useState(initial?.dueDate ?? '')
-  const [taxRate, setTaxRate] = useState(String((initial?.taxRateBps ?? 1800) / 100))
-  const [discount, setDiscount] = useState(initial?.discountPaise != null ? paiseToRupeeString(initial.discountPaise) : '')
-  const [amountPaid, setAmountPaid] = useState(initial?.amountPaidPaise != null ? paiseToRupeeString(initial.amountPaidPaise) : '')
-  const [attachmentUrl, setAttachmentUrl] = useState(initial?.attachmentUrl ?? '')
-  const [notes, setNotes] = useState(initial?.notes ?? '')
-  const [terms, setTerms] = useState(initial?.terms ?? '')
-  const [status, setStatus] = useState<string>(initial?.status ?? 'draft')
-  const [items, setItems] = useState<ItemDraft[]>(initial?.items?.length ? initial.items.map((it) => ({ description: it.description, quantity: String(it.quantity), unitPrice: paiseToRupeeString(it.unitPricePaise) })) : [{ ...EMPTY_ITEM }])
-
-  function updateItem(idx: number, field: keyof ItemDraft, value: string) { setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it))) }
-  function addItem() { setItems((prev) => [...prev, { ...EMPTY_ITEM }]) }
-  function removeItem(idx: number) { setItems((prev) => prev.filter((_, i) => i !== idx)) }
-  function onVendorChange(id: string) { setVendorId(id); const v = options.vendors.find((x) => x.id === id); if (v) setVendorName(v.name) }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault(); setSaving(true)
-    try {
-      const payload = {
-        vendorId: vendorId || null, vendorName, vendorEmail: vendorEmail || null, vendorPhone: null, vendorAddress: vendorAddress || null, vendorGstin: vendorGstin || null, vendorPan: vendorPan || null,
-        projectId: projectId || null, poNumber: poNumber || null, poDate: poDate || null, description: null,
-        invoiceDate: invoiceDate || null, dueDate: dueDate || null,
-        taxRateBps: Math.round(Number(taxRate) * 100), discountPaise: discount ? rupeeStringToPaise(discount) : 0, amountPaidPaise: amountPaid ? rupeeStringToPaise(amountPaid) : 0,
-        notes: notes || null, terms: terms || null, attachmentUrl: attachmentUrl || null, status: status as never,
-        items: items.filter((it) => it.description.trim()).map((it) => ({ description: it.description.trim(), quantity: Math.max(1, parseInt(it.quantity, 10) || 1), unitPricePaise: rupeeStringToPaise(it.unitPrice || '0') })),
-      }
-      if (isEdit) await updatePurchaseInvoiceAction({ data: { id: initial!.id, ...payload } })
-      else await createPurchaseInvoiceAction({ data: payload })
-      onSaved()
-    } catch (err) { showFeedback('error', err instanceof Error ? err.message : 'Save failed.') } finally { setSaving(false) }
-  }
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
-      <form onSubmit={handleSubmit} style={{ background: 'var(--surface)', borderRadius: 12, width: 760, maxWidth: '100%', maxHeight: '92vh', overflow: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{isEdit ? `Edit ${initial!.invoiceNumber}` : 'New Purchase Invoice — Received from Vendor'}</h3>
-          <button type="button" className="btn-ghost" onClick={onClose}><X size={16} /></button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field>
-            <FieldLabel>Vendor (master)</FieldLabel>
-            <select value={vendorId} onChange={(e) => onVendorChange(e.target.value)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>
-              <option value="">— No master link —</option>
-              {options.vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
-          </Field>
-          <Field><FieldLabel>Vendor Name *</FieldLabel><Input value={vendorName} onChange={(e) => setVendorName(e.target.value)} required /></Field>
-          <Field><FieldLabel>Vendor Email</FieldLabel><Input type="email" value={vendorEmail} onChange={(e) => setVendorEmail(e.target.value)} /></Field>
-          <Field><FieldLabel>GSTIN</FieldLabel><Input value={vendorGstin} onChange={(e) => setVendorGstin(e.target.value)} /></Field>
-          <Field><FieldLabel>PAN</FieldLabel><Input value={vendorPan} onChange={(e) => setVendorPan(e.target.value)} /></Field>
-          <Field><FieldLabel>Phone</FieldLabel><Input value={vendorPan} onChange={(e) => setVendorPan(e.target.value)} placeholder="Use GSTIN/PAN fields above" style={{ display: 'none' }} /><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Use GSTIN/PAN</span></Field>
-          <Field style={{ gridColumn: '1 / -1' }}><FieldLabel>Vendor Address</FieldLabel><textarea value={vendorAddress} onChange={(e) => setVendorAddress(e.target.value)} rows={2} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }} /></Field>
-          <Field><FieldLabel>Invoice Date</FieldLabel><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></Field>
-          <Field><FieldLabel>Due Date</FieldLabel><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
-          <Field><FieldLabel>PO Number</FieldLabel><Input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} /></Field>
-          <Field><FieldLabel>Project</FieldLabel><select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}><option value="">— None —</option>{options.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-        </div>
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12, fontWeight: 700 }}>Line Items</span>
-            <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: '4px 8px' }} onClick={addItem}><Plus size={12} /> Add line</button>
-          </div>
-          {items.map((it, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 120px 32px', gap: 8, marginBottom: 8 }}>
-              <Input placeholder="Description" value={it.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} />
-              <Input type="number" min="1" placeholder="Qty" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
-              <Input type="number" step="0.01" placeholder="Rate (₹)" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
-              <button type="button" className="btn-ghost" style={{ padding: '6px' }} onClick={() => removeItem(idx)}><Trash2 size={14} /></button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <Field><FieldLabel>Tax Rate %</FieldLabel><Input type="number" step="0.1" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} /></Field>
-          <Field><FieldLabel>Discount (₹)</FieldLabel><Input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} /></Field>
-          <Field><FieldLabel>Amount Paid (₹)</FieldLabel><Input type="number" step="0.01" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} /></Field>
-          <Field><FieldLabel>Status</FieldLabel><select value={status} onChange={(e) => setStatus(e.target.value)} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }}>{PURCHASE_INVOICE_STATUSES.map((s) => <option key={s} value={s}>{PURCHASE_INVOICE_STATUS_LABELS[s]}</option>)}</select></Field>
-          <Field style={{ gridColumn: '1 / -1' }}><FieldLabel>Attachment URL</FieldLabel><Input value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} placeholder="https://…" /></Field>
-        </div>
-        <Field><FieldLabel>Notes</FieldLabel><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }} /></Field>
-        <Field><FieldLabel>Terms</FieldLabel><textarea value={terms} onChange={(e) => setTerms(e.target.value)} rows={2} style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13 }} /></Field>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-          <button type="button" className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Invoice'}</button>
-        </div>
-      </form>
-    </div>
-  )
-}
