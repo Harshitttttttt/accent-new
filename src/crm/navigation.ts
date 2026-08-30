@@ -18,17 +18,25 @@ export function pageFromPath(pathname: string): string {
   if (pathname.startsWith('/reports/')) {
     return decodeURIComponent(pathname.slice('/reports/'.length))
   }
-  // Static client/vendor quotation routes shadow the generic /admin/$module page.
+  // Static client/vendor quotation & purchase order routes shadow the generic /admin/$module page.
   if (pathname.startsWith('/admin/client-quotations')) return 'client-quotations'
   if (pathname.startsWith('/admin/vendor-quotations')) return 'vendor-quotations'
+  if (pathname.startsWith('/admin/client-purchase-orders')) return 'client-purchase-orders'
+  if (pathname.startsWith('/admin/vendor-purchase-orders')) return 'vendor-purchase-orders'
+  if (pathname.startsWith('/admin/payment-received') || pathname.startsWith('/admin/payments-received')) return 'payment-received'
+  if (pathname.startsWith('/admin/payment-issued') || pathname.startsWith('/admin/payments-released') || pathname.startsWith('/admin/payment-released')) return 'payment-issued'
   // Legacy aliases — keep for old links/bookmarks.
   if (pathname.startsWith('/admin/quotations')) return 'client-quotations'
   if (pathname.startsWith('/admin/quotation-outgoing')) return 'vendor-quotations'
+  if (pathname.startsWith('/admin/purchase-orders-incoming') || pathname.startsWith('/admin/incoming-purchase-orders') || pathname.startsWith('/admin/client-pos')) return 'client-purchase-orders'
+  if (pathname.startsWith('/admin/purchase-orders-outgoing') || pathname.startsWith('/admin/outgoing-purchase-orders') || pathname.startsWith('/admin/vendor-pos')) return 'vendor-purchase-orders'
+  if (pathname === '/admin/purchase-orders') return 'client-purchase-orders'
   if (pathname.startsWith('/admin/')) {
     return decodeURIComponent(pathname.slice('/admin/'.length))
   }
   if (pathname === '/tasks') return 'tasks'
   if (pathname === '/messages') return 'messages'
+  if (pathname === '/support' || pathname.startsWith('/support/')) return 'support'
   if (pathname.startsWith('/module/')) {
     return decodeURIComponent(pathname.slice('/module/'.length))
   }
@@ -52,9 +60,14 @@ export function useCrmNavigation() {
         return router.navigate({ to: '/proposals' })
       case 'financial-dashboard':
       case 'sale-invoices':
-      case 'payment-received':
-      case 'payment-issued':
         return router.navigate({ to: '/finance' })
+      case 'payment-received':
+      case 'payments-received':
+        return router.navigate({ to: '/admin/payment-received' })
+      case 'payment-issued':
+      case 'payments-released':
+      case 'payment-released':
+        return router.navigate({ to: '/admin/payment-issued' })
       case 'employee-profile':
         return router.navigate({ to: '/employees/$employeeId', params: { employeeId: 'sara-mohammed' } })
       case 'user-master':
@@ -84,12 +97,23 @@ export function useCrmNavigation() {
         return router.navigate({ to: '/admin/client-quotations' })
       case 'vendor-quotations':
         return router.navigate({ to: '/admin/vendor-quotations' })
+      case 'client-purchase-orders':
+      case 'purchase-orders-incoming':
+      case 'incoming-purchase-orders':
+      case 'client-pos':
+        return router.navigate({ to: '/admin/client-purchase-orders' })
+      case 'vendor-purchase-orders':
+      case 'purchase-orders-outgoing':
+      case 'outgoing-purchase-orders':
+      case 'vendor-pos':
+        return router.navigate({ to: '/admin/vendor-purchase-orders' })
       // Legacy aliases
       case 'quotations':
         return router.navigate({ to: '/admin/client-quotations' })
       case 'quotation-outgoing':
         return router.navigate({ to: '/admin/vendor-quotations' })
       case 'purchase-orders':
+        return router.navigate({ to: '/admin/client-purchase-orders' })
       case 'purchase-invoices':
       case 'cash-voucher':
       case 'material-req':
@@ -97,12 +121,13 @@ export function useCrmNavigation() {
       case 'salary-slip':
       case 'activity-logs':
       case 'live-monitoring':
-      case 'todos':
         return router.navigate({ to: '/admin/$module', params: { module: page } })
       case 'tasks':
         return router.navigate({ to: '/tasks' })
       case 'messages':
         return router.navigate({ to: '/messages' })
+      case 'support':
+        return router.navigate({ to: '/support' })
       default:
         return router.navigate({ to: '/module/$module', params: { module: page } })
     }

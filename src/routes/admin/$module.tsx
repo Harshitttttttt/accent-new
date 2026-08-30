@@ -72,11 +72,6 @@ const ADMIN_MODULES: Record<
       'Last Update',
     ],
   },
-  todos: {
-    title: 'Todos & Action Items',
-    description: 'Team checklist and operational action items',
-    columns: ['ID', 'Task', 'Assignee', 'Due Date', 'Status', 'Priority'],
-  },
 }
 
 export const Route = createFileRoute('/admin/$module')({

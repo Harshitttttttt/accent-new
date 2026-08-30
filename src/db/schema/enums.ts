@@ -112,3 +112,96 @@ export const assignmentStatusEnum = pgEnum('assignment_status', [
 ])
 
 export const assignmentPriorityEnum = pgEnum('assignment_priority', ['low', 'medium', 'high', 'critical'])
+
+export const ticketStatusEnum = pgEnum('ticket_status', [
+  'open',
+  'in_progress',
+  'waiting_on_user',
+  'resolved',
+  'closed',
+])
+
+export const ticketPriorityEnum = pgEnum('ticket_priority', [
+  'low',
+  'medium',
+  'high',
+  'urgent',
+])
+
+export const ticketCategoryEnum = pgEnum('ticket_category', [
+  'it_support',
+  'software_license',
+  'hardware',
+  'admin',
+  'hr',
+  'billing',
+  'access_request',
+  'other',
+])
+
+export const clientPurchaseOrderStatusEnum = pgEnum('client_purchase_order_status', [
+  'draft',
+  'acknowledged',
+  'in_progress',
+  'fulfilled',
+  'on_hold',
+  'cancelled',
+])
+
+export const vendorPurchaseOrderStatusEnum = pgEnum('vendor_purchase_order_status', [
+  'draft',
+  'pending_approval',
+  'approved',
+  'issued',
+  'partially_received',
+  'fulfilled',
+  'cancelled',
+])
+
+export const clientPaymentStatusEnum = pgEnum('client_payment_status', [
+  'draft',
+  'pending_clearance',
+  'cleared',
+  'bounced',
+  'cancelled',
+])
+
+export const clientPaymentTypeEnum = pgEnum('client_payment_type', [
+  'invoice_payment',
+  'advance_payment',
+  'retention_release',
+  'security_deposit',
+  'other',
+])
+
+export const paymentModeEnum = pgEnum('payment_mode', [
+  'neft',
+  'rtgs',
+  'imps',
+  'cheque',
+  'upi',
+  'bank_transfer',
+  'wire_transfer',
+  'cash',
+  'other',
+])
+
+export const paymentReleaseStatusEnum = pgEnum('payment_release_status', [
+  'draft',
+  'pending_approval',
+  'approved',
+  'processed',
+  'cleared',
+  'failed',
+  'cancelled',
+])
+
+export const paymentReleaseTypeEnum = pgEnum('payment_release_type', [
+  'advance_refund',
+  'security_deposit_refund',
+  'retention_release',
+  'excess_payment_refund',
+  'credit_settlement',
+  'other',
+])
+

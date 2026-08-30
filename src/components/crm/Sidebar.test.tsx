@@ -154,4 +154,53 @@ describe('Sidebar Component', () => {
     expect(document.getElementById('sidebar-account-menu')).toBeNull()
     expect(gear).toHaveFocus()
   })
+
+  it('renders all domain group labels', () => {
+    render(<Sidebar currentPage="dashboard" onNavigate={vi.fn()} />)
+
+    expect(screen.getByText('Core', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('Commercial', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('Operations', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('Finance', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('HR & Payroll', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('Reports', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('Masters', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+    expect(screen.getByText('Administration', { selector: '.sidebar-group-label' })).toBeInTheDocument()
+  })
+
+  it('toggles the Finance & Accounts dropdown and reveals finance items', async () => {
+    const user = userEvent.setup()
+    const onNavigate = vi.fn()
+    render(<Sidebar currentPage="dashboard" onNavigate={onNavigate} />)
+
+    const financeToggle = screen.getByRole('button', { name: /toggle finance & accounts menu/i })
+    expect(financeToggle).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(financeToggle)
+    expect(financeToggle).toHaveAttribute('aria-expanded', 'true')
+
+    expect(screen.getByRole('button', { name: 'Financial Overview' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Purchase Invoices' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Payment Received' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Purchase Invoices' }))
+    expect(onNavigate).toHaveBeenCalledWith('purchase-invoices')
+  })
+
+  it('auto-expands the parent accordion when the active page is a child item', () => {
+    render(<Sidebar currentPage="reports-timesheet" onNavigate={vi.fn()} />)
+
+    // Reports accordion should be auto-expanded because currentPage is 'reports-timesheet'
+    const timesheetBtn = screen.getByRole('button', { name: 'Timesheet Report' })
+    expect(timesheetBtn).toBeInTheDocument()
+    expect(timesheetBtn).toHaveClass('active')
+  })
+
+  it('auto-expands finance accordion when active page is a finance child item', () => {
+    render(<Sidebar currentPage="expenses" onNavigate={vi.fn()} />)
+
+    const expensesBtn = screen.getByRole('button', { name: 'Expenses' })
+    expect(expensesBtn).toBeInTheDocument()
+    expect(expensesBtn).toHaveClass('active')
+  })
 })
