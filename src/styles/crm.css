@@ -236,24 +236,32 @@ body {
 .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 16px;
+  height: 36px;
+  padding: 0 16px;
   background: var(--brand-primary);
   color: var(--on-brand);
-  border: none;
+  border: 1px solid transparent;
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
 }
-.btn-primary:hover { background: var(--brand-primary-hover); }
+.btn-primary:hover:not(:disabled) { background: var(--brand-primary-hover); }
+.btn-primary:active:not(:disabled) { transform: scale(0.96); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 16px;
+  height: 36px;
+  padding: 0 16px;
   background: var(--surface);
   color: var(--text-primary);
   border: 1px solid var(--border);
@@ -261,25 +269,35 @@ body {
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
-.btn-secondary:hover { background: var(--surface-secondary); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-secondary); }
+.btn-secondary:active:not(:disabled) { transform: scale(0.96); }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 10px;
+  height: 36px;
+  padding: 0 12px;
   background: transparent;
   color: var(--text-secondary);
-  border: none;
+  border: 1px solid transparent;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
 }
-.btn-ghost:hover { background: var(--surface-secondary); color: var(--text-primary); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-secondary); color: var(--text-primary); }
+.btn-ghost:active:not(:disabled) { transform: scale(0.96); }
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .card {
   background: var(--surface);
@@ -289,14 +307,16 @@ body {
 
 .input-base {
   width: 100%;
-  padding: 8px 12px;
+  height: 36px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 13.5px;
   color: var(--text-primary);
   background: var(--surface);
   outline: none;
-  transition: border-color 0.15s;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .input-base:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px var(--focus-ring); }
 

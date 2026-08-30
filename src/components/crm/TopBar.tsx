@@ -28,11 +28,18 @@ const PAGE_TITLES: Record<string, string> = {
   'reports-project-status': 'Project Status',
   'reports-attendance': 'Attendance Report',
   quotations: 'Client Quotations',
+  'client-quotations': 'Client Quotations',
+  'vendor-quotations': 'Vendor Quotations',
+  'client-purchase-orders': 'Client Purchase Orders',
+  'vendor-purchase-orders': 'Vendor Purchase Orders',
   'purchase-orders': 'Purchase Orders',
   'sale-invoices': 'Sale Invoices',
   'purchase-invoices': 'Purchase Invoices',
-  'payment-received': 'Payment Received',
-  'payment-issued': 'Payment Issued',
+  'payment-received': 'Payment Received from Client',
+  'payments-received': 'Payment Received from Client',
+  'payment-issued': 'Payment Released to Client',
+  'payments-released': 'Payment Released to Client',
+  'payment-released': 'Payment Released to Client',
   expenses: 'Expenses',
   'cash-voucher': 'Cash Voucher',
   'material-req': 'Material Requisition',
@@ -40,7 +47,6 @@ const PAGE_TITLES: Record<string, string> = {
   'salary-slip': 'Salary Slip',
   'activity-logs': 'Activity Logs',
   'live-monitoring': 'Live Monitoring',
-  todos: 'Todos',
   'employee-master': 'Employee Master',
   'user-master': 'User Master',
   'activity-master': 'Activity Master',
@@ -323,21 +329,25 @@ export default function TopBar({ currentPage, onNavigate, user }: Props) {
               onBlur={() => setShowQuickCreate(false)}
             >
               {[
-                'New Project',
-                'New Lead',
-                'New Proposal',
-                'New Invoice',
-                'New Task',
+                { label: 'New Project', page: 'projects' },
+                { label: 'New Lead', page: 'leads' },
+                { label: 'New Proposal', page: 'proposals' },
+                { label: 'New Invoice', page: 'financial-dashboard' },
+                { label: 'New Task', page: 'tasks' },
+                { label: 'New Support Ticket', page: 'support' },
               ].map((item) => (
                 <button
                   type="button"
-                  key={item}
+                  key={item.label}
                   className="sidebar-link"
                   style={{ borderRadius: 6, fontSize: 13 }}
-                  onClick={() => setShowQuickCreate(false)}
+                  onClick={() => {
+                    setShowQuickCreate(false)
+                    onNavigate(item.page)
+                  }}
                 >
                   <Plus size={13} />
-                  {item}
+                  {item.label}
                 </button>
               ))}
             </div>

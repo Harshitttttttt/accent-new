@@ -13,3 +13,7 @@ export * from './schema/masters/software'
 export * from './schema/masters/company'
 export * from './schema/masters/vendor'
 export * from './schema/masters/bank'
+export * from './schema/support-tickets'
+export * from './schema/purchase-orders'
+export * from './schema/payments'
+

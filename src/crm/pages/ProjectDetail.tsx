@@ -210,11 +210,13 @@ function Field({ label, children, span }: { label: string; children: React.React
 const inputStyle: React.CSSProperties = {
   border: '1px solid var(--border)',
   borderRadius: 8,
-  padding: '8px 10px',
+  padding: '0 10px',
+  height: 36,
   fontSize: 13,
   background: 'var(--surface)',
   color: 'var(--text-primary)',
   width: '100%',
+  boxSizing: 'border-box',
 }
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -222,11 +224,11 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} style={{ ...inputStyle, resize: 'vertical', ...props.style }} />
+  return <textarea {...props} style={{ ...inputStyle, height: 'auto', padding: '8px 10px', resize: 'vertical', ...props.style }} />
 }
 
 function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} style={{ ...inputStyle, ...props.style }} />
+  return <select {...props} style={{ ...inputStyle, cursor: 'pointer', ...props.style }} />
 }
 
 function FormCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
@@ -434,7 +436,7 @@ export default function ProjectDetailPage({ initialData }: { initialData: Projec
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Select
             aria-label="Project status"
             value={detail.status}
@@ -448,7 +450,8 @@ export default function ProjectDetailPage({ initialData }: { initialData: Projec
             ))}
           </Select>
           <Button onClick={() => void handleSave()} disabled={isSaving}>
-            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Changes
+            {isSaving ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}{' '}
+            Save changes
           </Button>
         </div>
       </div>

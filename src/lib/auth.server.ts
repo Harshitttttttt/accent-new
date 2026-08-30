@@ -384,8 +384,12 @@ export async function isUserAdmin(userId: string): Promise<boolean> {
   return roles.some((r) => r.code === 'admin')
 }
 
-/** True when the user's roles grant the given permission code (e.g. 'leads.read'). */
+/** True when the user's roles grant the given permission code (e.g. 'leads.read'), or if the user is an admin. */
 export async function userHasPermission(userId: string, permissionCode: string): Promise<boolean> {
+  if (await isUserAdmin(userId)) {
+    return true
+  }
+
   const rows = await db
     .select({ permissionId: permissionsTable.id })
     .from(userRolesTable)
@@ -525,6 +529,14 @@ export const DEFAULT_PERMISSIONS = [
     code: 'reports.view',
     description: 'Access the reporting center and export operational intelligence',
   },
+  {
+    code: 'support.read',
+    description: 'View IT and operational support tickets and service requests',
+  },
+  {
+    code: 'support.write',
+    description: 'Create, update, assign, and resolve support tickets and comments',
+  },
 ] as const
 
 const DEFAULT_ROLE_PERMISSION_MAP: Record<string, readonly string[]> = {
@@ -543,6 +555,8 @@ const DEFAULT_ROLE_PERMISSION_MAP: Record<string, readonly string[]> = {
     'employees.read',
     'employees.write',
     'reports.view',
+    'support.read',
+    'support.write',
   ],
   project_manager: [
     'projects.read',
@@ -552,6 +566,8 @@ const DEFAULT_ROLE_PERMISSION_MAP: Record<string, readonly string[]> = {
     'proposals.write',
     'employees.read',
     'reports.view',
+    'support.read',
+    'support.write',
   ],
   accounts: [
     'finance.read',
@@ -559,15 +575,21 @@ const DEFAULT_ROLE_PERMISSION_MAP: Record<string, readonly string[]> = {
     'proposals.read',
     'projects.read',
     'reports.view',
+    'support.read',
+    'support.write',
   ],
   hr: [
     'employees.read',
     'employees.write',
     'reports.view',
+    'support.read',
+    'support.write',
   ],
   engineer: [
     'projects.read',
     'reports.view',
+    'support.read',
+    'support.write',
   ],
 }
 
@@ -610,8 +632,6 @@ export async function ensureDefaultPermissions(): Promise<void> {
 
   const toInsert: Array<{ roleId: string; permissionId: string }> = []
   for (const role of allRoles) {
-    // Preserve original semantics: only seed roles that have zero bindings (don't overwrite custom matrices)
-    if ((countByRole.get(role.id) ?? 0) > 0) continue
     const targetCodes = DEFAULT_ROLE_PERMISSION_MAP[role.code]
     if (!targetCodes) continue
     for (const code of targetCodes) {

@@ -52,14 +52,64 @@ interface NavItem {
   children?: NavItem[]
 }
 
-const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
+  {
+    // Standalone top-level Dashboard
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
+    ],
+  },
   {
     label: 'Core',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
       { id: 'leads', label: 'Leads', icon: <Users size={16} /> },
       { id: 'proposals', label: 'Proposals', icon: <FileText size={16} /> },
       { id: 'projects', label: 'Projects', icon: <FolderKanban size={16} /> },
+    ],
+  },
+  {
+    label: 'Commercial',
+    items: [
+      { id: 'client-quotations', label: 'Client Quotations', icon: <FileSpreadsheet size={16} /> },
+      { id: 'vendor-quotations', label: 'Vendor Quotations', icon: <Truck size={16} /> },
+      { id: 'client-purchase-orders', label: 'Client POs (Incoming)', icon: <ShoppingCart size={16} /> },
+      { id: 'vendor-purchase-orders', label: 'Vendor POs (Outgoing)', icon: <FileText size={16} /> },
+      { id: 'material-req', label: 'Material Requisition', icon: <Package size={16} /> },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { id: 'tasks', label: 'Tasks', icon: <CheckSquare size={16} /> },
+      { id: 'messages', label: 'Messages', icon: <MessageSquare size={16} /> },
+      { id: 'support', label: 'Support Tickets', icon: <HeadphonesIcon size={16} /> },
+      { id: 'live-monitoring', label: 'Live Monitoring', icon: <Monitor size={16} /> },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      {
+        id: 'finance',
+        label: 'Finance & Accounts',
+        icon: <Wallet size={16} />,
+        children: [
+          { id: 'financial-dashboard', label: 'Financial Overview', icon: <BarChart2 size={14} /> },
+          { id: 'sale-invoices', label: 'Sale Invoices', icon: <Receipt size={14} /> },
+          { id: 'purchase-invoices', label: 'Purchase Invoices', icon: <FileText size={14} /> },
+          { id: 'payment-received', label: 'Payment Received', icon: <CreditCard size={14} /> },
+          { id: 'payment-issued', label: 'Payment Issued', icon: <Wallet size={14} /> },
+          { id: 'expenses', label: 'Expenses', icon: <DollarSign size={14} /> },
+          { id: 'cash-voucher', label: 'Cash Voucher', icon: <FileSpreadsheet size={14} /> },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'HR & Payroll',
+    items: [
+      { id: 'salary-sheet', label: 'Salary Sheet', icon: <FileSpreadsheet size={16} /> },
+      { id: 'salary-slip', label: 'Salary Slip', icon: <FileText size={16} /> },
     ],
   },
   {
@@ -70,34 +120,14 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         label: 'Reports',
         icon: <BarChart2 size={16} />,
         children: [
-          { id: 'reports-employee', label: 'Employee Report', icon: <Users size={14} /> },
+          { id: 'reports-project-status', label: 'Project Status', icon: <FolderKanban size={14} /> },
           { id: 'reports-timesheet', label: 'Timesheet Report', icon: <Clock size={14} /> },
           { id: 'reports-manhours', label: 'Manhours Billing', icon: <DollarSign size={14} /> },
           { id: 'reports-balances', label: 'Outstanding Balances', icon: <Wallet size={14} /> },
-          { id: 'reports-project-status', label: 'Project Status', icon: <FolderKanban size={14} /> },
+          { id: 'reports-employee', label: 'Employee Report', icon: <Users size={14} /> },
           { id: 'reports-attendance', label: 'Attendance Report', icon: <CheckSquare size={14} /> },
         ],
       },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      { id: 'client-quotations', label: 'Client Quotations', icon: <FileText size={16} /> },
-      { id: 'vendor-quotations', label: 'Vendor Quotations', icon: <Truck size={16} /> },
-      { id: 'purchase-orders', label: 'Purchase Orders', icon: <ShoppingCart size={16} /> },
-      { id: 'sale-invoices', label: 'Sale Invoices', icon: <Receipt size={16} /> },
-      { id: 'purchase-invoices', label: 'Purchase Invoices', icon: <Receipt size={16} /> },
-      { id: 'payment-received', label: 'Payment Received', icon: <CreditCard size={16} /> },
-      { id: 'payment-issued', label: 'Payment Issued', icon: <Wallet size={16} /> },
-      { id: 'expenses', label: 'Expenses', icon: <DollarSign size={16} /> },
-      { id: 'cash-voucher', label: 'Cash Voucher', icon: <FileSpreadsheet size={16} /> },
-      { id: 'material-req', label: 'Material Requisition', icon: <Package size={16} /> },
-      { id: 'salary-sheet', label: 'Salary Sheet', icon: <FileSpreadsheet size={16} /> },
-      { id: 'salary-slip', label: 'Salary Slip', icon: <FileText size={16} /> },
-      { id: 'activity-logs', label: 'Activity Logs', icon: <Activity size={16} /> },
-      { id: 'live-monitoring', label: 'Live Monitoring', icon: <Monitor size={16} /> },
-      { id: 'todos', label: 'Todos', icon: <CheckSquare size={16} /> },
     ],
   },
   {
@@ -110,26 +140,24 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         children: [
           { id: 'employee-master', label: 'Employee Master', icon: <UserCog size={14} /> },
           { id: 'user-master', label: 'User Master', icon: <Users size={14} /> },
-          { id: 'activity-master', label: 'Activity Master', icon: <Activity size={14} /> },
-          { id: 'software-master', label: 'Software Master', icon: <Settings size={14} /> },
-          { id: 'deliverables-master', label: 'Deliverables Master', icon: <BookOpen size={14} /> },
           { id: 'company-master', label: 'Company Master', icon: <Building2 size={14} /> },
           { id: 'vendor-master', label: 'Vendor Master', icon: <Truck size={14} /> },
           { id: 'bank-master', label: 'Bank Master', icon: <Landmark size={14} /> },
-          { id: 'description-master', label: 'Description Master', icon: <FileText size={14} /> },
-          { id: 'expense-category', label: 'Expense Category', icon: <Tag size={14} /> },
-          { id: 'holiday-master', label: 'Holiday Master', icon: <Clock size={14} /> },
           { id: 'account-head', label: 'Account Head Master', icon: <Landmark size={14} /> },
+          { id: 'expense-category', label: 'Expense Category', icon: <Tag size={14} /> },
+          { id: 'activity-master', label: 'Activity Master', icon: <Activity size={14} /> },
+          { id: 'software-master', label: 'Software Master', icon: <Settings size={14} /> },
+          { id: 'deliverables-master', label: 'Deliverables Master', icon: <BookOpen size={14} /> },
+          { id: 'holiday-master', label: 'Holiday Master', icon: <Clock size={14} /> },
+          { id: 'description-master', label: 'Description Master', icon: <FileText size={14} /> },
         ],
       },
     ],
   },
   {
-    label: 'Collaboration',
+    label: 'Administration',
     items: [
-      { id: 'messages', label: 'Messages', icon: <MessageSquare size={16} /> },
-      { id: 'tasks', label: 'Tasks', icon: <CheckSquare size={16} /> },
-      { id: 'support', label: 'Support Tickets', icon: <HeadphonesIcon size={16} /> },
+      { id: 'activity-logs', label: 'Activity Logs', icon: <Activity size={16} /> },
     ],
   },
 ]
@@ -151,6 +179,7 @@ const ACCOUNT_MENU_ID = 'sidebar-account-menu'
 export default function Sidebar({ currentPage, onNavigate, user, onLogout }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    finance: false,
     reports: false,
     masters: false,
   })
@@ -165,6 +194,17 @@ export default function Sidebar({ currentPage, onNavigate, user, onLogout }: Pro
   const accountRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const gearButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Auto-expand any group containing the current page so deep links remain contextually visible
+  useEffect(() => {
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        if (item.children?.some((child) => child.id === currentPage)) {
+          setExpandedGroups((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: true }))
+        }
+      }
+    }
+  }, [currentPage])
 
   // Close the account menu on collapse toggle, outside pointer press, or
   // Escape. Focus returns to the gear trigger on Escape so keyboard users
@@ -389,9 +429,11 @@ export default function Sidebar({ currentPage, onNavigate, user, onLogout }: Pro
         )}
 
         {/* Main nav groups */}
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label}>
-            {!collapsed && <div className="sidebar-group-label">{group.label}</div>}
+        {NAV_GROUPS.map((group, groupIdx) => (
+          <div key={group.label ?? `group-${groupIdx}`}>
+            {!collapsed && group.label && (
+              <div className="sidebar-group-label">{group.label}</div>
+            )}
             {group.items.map((item) => (
               <div key={item.id}>
                 {item.children ? (
@@ -408,6 +450,8 @@ export default function Sidebar({ currentPage, onNavigate, user, onLogout }: Pro
                           ? `Expand ${item.label} menu`
                           : `Toggle ${item.label} menu`
                       }
+                      aria-expanded={expandedGroups[item.id] ?? false}
+                      aria-controls={`sidebar-subgroup-${item.id}`}
                       title={collapsed ? item.label : undefined}
                     >
                       {item.icon}
@@ -423,7 +467,7 @@ export default function Sidebar({ currentPage, onNavigate, user, onLogout }: Pro
                       )}
                     </button>
                     {!collapsed && expandedGroups[item.id] && (
-                      <div style={{ paddingLeft: 12 }}>
+                      <div id={`sidebar-subgroup-${item.id}`} style={{ paddingLeft: 12 }}>
                         {item.children.map((child) => (
                           <button
                             type="button"
